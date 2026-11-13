@@ -1,0 +1,1066 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>Угадай число</title>
+<style>
+  * { box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+  body { margin: 0; min-height: 100vh; display: flex; align-items: center; justify-content: center;
+    font-family: -apple-system, Arial, sans-serif; background: linear-gradient(135deg, #667eea, #764ba2);
+    padding: 16px; transition: background .4s; }
+  .game { background: #fff; padding: 18px 14px; border-radius: 20px; box-shadow: 0 10px 30px rgba(0,0,0,.3);
+    text-align: center; width: 100%; max-width: 390px; position: relative; }
+  h1 { margin: 0 0 6px; font-size: 19px; }
+  p.hint { color: #666; font-size: 13px; margin: 4px 0 12px; }
+  input[type=number], input[type=text], input[type=password] {
+    width: 100%; padding: 13px; font-size: 19px; border: 2px solid #ccc; border-radius: 12px;
+    text-align: center; outline: none; margin-bottom: 8px; }
+  input:focus { border-color: #667eea; }
+  .buttons { display: flex; gap: 8px; margin-top: 8px; }
+  button { flex: 1; padding: 13px 8px; font-size: 14px; border: none; border-radius: 12px;
+    background: #667eea; color: #fff; cursor: pointer; font-weight: bold; }
+  button:active { opacity: .8; } button:disabled { opacity: .5; }
+  #resetBtn { background: #888; flex: 0 0 64px; }
+  #message { margin-top: 12px; font-size: 14px; font-weight: bold; min-height: 22px; }
+  .win { color: #2e7d32; } .lose { color: #c62828; } .info { color: #333; }
+  .counter { color: #888; font-size: 12px; margin-top: 6px; }
+  .counter b { color: #667eea; }
+  .top-bar { display: flex; justify-content: space-between; align-items: center; margin-bottom: 8px; gap: 4px; }
+  .coins-bar { display: flex; align-items: center; gap: 4px; background: #fff8e1; border: 2px solid #ffc107;
+    border-radius: 12px; padding: 5px 10px; font-size: 14px; font-weight: bold; color: #b8860b; }
+  .avatar-view { font-size: 22px; padding: 0 4px; }
+  #adminToggle { position: absolute; top: 6px; right: 6px; width: 28px; height: 28px; padding: 0;
+    font-size: 13px; background: transparent; color: #bbb; border-radius: 50%; flex: none; min-width: 0; }
+  .overlay { display: none; position: fixed; inset: 0; background: rgba(0,0,0,.55);
+    align-items: center; justify-content: center; padding: 12px; z-index: 100; }
+  .overlay.show { display: flex; }
+  .modal { background: #fff; border-radius: 16px; padding: 16px 14px; width: 100%; max-width: 400px;
+    text-align: center; max-height: 92vh; overflow-y: auto; }
+  .modal h2 { margin: 0 0 10px; font-size: 17px; }
+  .modal .row { display: flex; gap: 6px; }
+  .modal button { padding: 10px 8px; font-size: 12px; }
+  .modal .cancel { background: #bbb; } .modal .green { background: #4caf50; }
+  .modal .red { background: #f44336; } .modal .orange { background: #ff9800; }
+  .modal .purple { background: #9c27b0; }
+  .section-title { font-size: 11px; color: #999; text-transform: uppercase; letter-spacing: 1px;
+    margin: 12px 0 5px; text-align: left; font-weight: bold; }
+  .admin-info { background: #f0f4ff; border: 1px dashed #667eea; border-radius: 10px;
+    padding: 8px; margin: 6px 0; font-size: 13px; text-align: left; }
+  .admin-info b { color: #667eea; }
+  .switch-row { display: flex; align-items: center; justify-content: space-between;
+    background: #f7f7f7; border-radius: 10px; padding: 10px; margin: 5px 0; font-size: 13px; }
+  .switch-row input { width: auto; transform: scale(1.3); margin: 0; }
+  .grid2 { display: grid; grid-template-columns: 1fr 1fr; gap: 6px; margin-top: 5px; }
+  .grid2 input { margin: 0; }
+  .msg { color: #c62828; font-size: 12px; min-height: 14px; }
+  .ok { color: #2e7d32; font-size: 12px; min-height: 14px; }
+  .log-box { background: #1e1e1e; color: #0f0; font-family: monospace; font-size: 11px; padding: 6px;
+    border-radius: 8px; text-align: left; max-height: 100px; overflow-y: auto; margin: 6px 0; white-space: pre-wrap; }
+  .coins-anim { position: fixed; top: 50%; left: 50%; transform: translate(-50%,-50%);
+    font-size: 34px; font-weight: bold; color: #ffc107; text-shadow: 0 0 10px rgba(0,0,0,.3);
+    pointer-events: none; z-index: 200; animation: floatUp 1.4s ease-out forwards; }
+  @keyframes floatUp { 0% { opacity: 0; transform: translate(-50%,-30%) scale(.5); }
+    30% { opacity: 1; transform: translate(-50%,-50%) scale(1.2); }
+    100% { opacity: 0; transform: translate(-50%,-120%) scale(1); } }
+  .reward-preview { font-size: 11px; color: #888; margin-top: 3px; }
+  .level-badge { display: inline-block; background: #667eea; color: #fff; padding: 2px 8px;
+    border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 4px; }
+  .prestige-badge { display: inline-block; background: #ffc107; color: #333; padding: 2px 8px;
+    border-radius: 12px; font-size: 11px; font-weight: bold; margin-left: 4px; }
+  .xp-bar { height: 6px; background: #eee; border-radius: 3px; margin: 4px 0 8px; overflow: hidden; }
+  .xp-fill { height: 100%; background: linear-gradient(90deg, #667eea, #764ba2); width: 0%; transition: width .4s; }
+  .xp-text { font-size: 10px; color: #888; margin-bottom: 2px; }
+  .bottom-bar { display: flex; gap: 4px; margin-top: 12px; padding-top: 10px; border-top: 2px solid #eee; }
+  .bottom-bar button { flex: 1; padding: 10px 4px; font-size: 11px; background: #f0f0f0; color: #333; }
+  .bottom-bar button.shop { background: #ff9800; color: #fff; }
+  .bottom-bar button.quests { background: #4caf50; color: #fff; }
+  .bottom-bar button.achieve { background: #ffc107; color: #333; }
+  .bottom-bar button.cases { background: #9c27b0; color: #fff; }
+  .bottom-bar button.settings { background: #607d8b; color: #fff; }
+  .shop-modal { background: #fff; border-radius: 16px; width: 100%; max-width: 420px; max-height: 92vh;
+    display: flex; flex-direction: column; overflow: hidden; }
+  .shop-header { padding: 10px 14px; display: flex; align-items: center; gap: 8px; border-bottom: 2px solid #eee; }
+  .shop-header h2 { font-size: 16px; margin: 0; flex: 1; text-align: left; }
+  .shop-coins { background: #fff8e1; color: #b8860b; font-weight: bold; padding: 4px 10px;
+    border-radius: 20px; font-size: 12px; }
+  .shop-close { width: 28px; height: 28px; border-radius: 50%; border: none; background: #eee;
+    color: #333; font-size: 14px; cursor: pointer; padding: 0; flex: none; }
+  .shop-tabs { display: flex; overflow-x: auto; border-bottom: 2px solid #eee; background: #fafafa; }
+  .shop-tab { flex: 1; min-width: 60px; padding: 8px 2px; background: transparent; border: none;
+    color: #888; font-size: 10px; font-weight: bold; cursor: pointer; border-bottom: 3px solid transparent; white-space: nowrap; }
+  .shop-tab.active { color: #667eea; border-bottom-color: #667eea; background: #fff; }
+  .shop-content { padding: 8px; overflow-y: auto; flex: 1; }
+  .shop-item { display: flex; align-items: center; gap: 6px; background: #f7f7f7; border-radius: 10px;
+    padding: 8px; margin-bottom: 6px; border: 1px solid #eee; text-align: left; }
+  .shop-swatch { width: 38px; height: 38px; border-radius: 8px; flex-shrink: 0; }
+  .shop-icon { width: 38px; height: 38px; border-radius: 8px; background: #e0e0e0; display: flex;
+    align-items: center; justify-content: center; font-size: 20px; flex-shrink: 0; }
+  .shop-info { flex: 1; min-width: 0; }
+  .shop-name { font-size: 12px; font-weight: bold; margin-bottom: 1px; }
+  .shop-desc { font-size: 10px; color: #666; }
+  .shop-dots { display: flex; gap: 2px; margin: 3px 0; }
+  .level-dot { width: 8px; height: 8px; border-radius: 50%; background: #ddd; }
+  .level-dot.filled { background: #667eea; }
+  .shop-buy { flex-shrink: 0; padding: 7px 9px; border: none; border-radius: 8px;
+    background: #4caf50; color: #fff; font-weight: bold; font-size: 10px; cursor: pointer; min-width: 60px; }
+  .shop-buy.owned { background: #ccc; color: #666; }
+  .shop-buy[disabled] { cursor: default; opacity: .7; }
+  .toast { position: fixed; top: 80px; left: 50%; transform: translateX(-50%); background: #c62828;
+    color: #fff; padding: 10px 20px; border-radius: 20px; font-size: 13px; font-weight: bold;
+    z-index: 999; animation: toastIn .2s ease-out; }
+  @keyframes toastIn { from { opacity: 0; transform: translate(-50%,-10px); } to { opacity: 1; transform: translate(-50%,0); } }
+  .active-item-badge { display: inline-block; background: #4caf50; color: #fff; padding: 1px 5px;
+    border-radius: 8px; font-size: 9px; margin-left: 3px; }
+  .quest-item { display: flex; align-items: center; gap: 8px; background: #f7f7f7;
+    border-radius: 10px; padding: 10px; margin: 6px 0; text-align: left; font-size: 12px; }
+  .quest-item.done { background: #dcedc8; }
+  .quest-icon { font-size: 24px; flex-shrink: 0; }
+  .quest-info { flex: 1; }
+  .quest-name { font-weight: bold; font-size: 13px; }
+  .quest-progress { font-size: 11px; color: #666; margin-top: 2px; }
+  .quest-reward { font-size: 11px; color: #ff9800; font-weight: bold; }
+  .quest-item button { flex: 0 0 auto; padding: 6px 10px; font-size: 11px; }
+  .ach-grid { display: grid; grid-template-columns: repeat(4, 1fr); gap: 6px; }
+  .ach-item { background: #f7f7f7; border-radius: 10px; padding: 8px 4px; text-align: center;
+    font-size: 10px; opacity: .4; border: 2px solid transparent; }
+  .ach-item.unlocked { opacity: 1; background: #fff8e1; border-color: #ffc107; }
+  .ach-icon { font-size: 24px; margin-bottom: 3px; }
+  .ach-name { font-weight: bold; line-height: 1.1; }
+  .case-card { background: linear-gradient(135deg, #9c27b0, #673ab7); border-radius: 14px;
+    padding: 18px; margin: 10px 0; color: #fff; cursor: pointer; }
+  .case-card:active { transform: scale(.98); }
+  .case-card .case-icon { font-size: 48px; }
+  .case-card .case-title { font-weight: bold; font-size: 16px; margin: 6px 0; }
+  .case-card .case-desc { font-size: 12px; opacity: .9; }
+  .case-result { background: #fff8e1; border: 2px solid #ffc107; border-radius: 10px;
+    padding: 14px; margin: 10px 0; font-size: 14px; font-weight: bold; color: #333; }
+  .avatar-grid { display: grid; grid-template-columns: repeat(5, 1fr); gap: 6px; margin: 8px 0; }
+  .avatar-item { background: #f7f7f7; border-radius: 10px; padding: 10px; font-size: 26px;
+    cursor: pointer; border: 2px solid transparent; }
+  .avatar-item.active { background: #e3f2fd; border-color: #667eea; }
+  .minigame-area { position: relative; width: 100%; height: 300px; background: #1a1a3e;
+    border-radius: 12px; overflow: hidden; margin: 10px 0; }
+  .minigame-coin { position: absolute; font-size: 28px; cursor: pointer; user-select: none;
+    animation: coinPop .2s ease-out; }
+  @keyframes coinPop { from { transform: scale(0); } to { transform: scale(1); } }
+  .minigame-score { position: absolute; top: 8px; left: 8px; color: #ffc107;
+    font-weight: bold; font-size: 16px; }
+  .minigame-timer { position: absolute; top: 8px; right: 8px; color: #fff;
+    font-weight: bold; font-size: 16px; }
+</style>
+</head>
+<body>
+<div class="game">
+  <button id="adminToggle" title="Админ">⚙</button>
+  <div class="top-bar">
+    <div class="coins-bar"><span>🪙</span><span id="coinsDisplay">0</span></div>
+    <div class="avatar-view" id="avatarView">🙂</div>
+  </div>
+  <h1><span id="avatarTitle">🎯</span> Угадай число <span class="level-badge" id="levelBadge">Ур. 1</span><span class="prestige-badge" id="prestigeBadge" style="display:none;">✨0</span></h1>
+  <div class="xp-text" id="xpText">0 / 100 XP</div>
+  <div class="xp-bar"><div class="xp-fill" id="xpFill"></div></div>
+  <p class="hint" id="hintText">Я загадал число от 1 до 100.<br>У тебя 76 попыток!</p>
+  <input type="number" id="guessInput" placeholder="?" inputmode="numeric" min="1" max="100">
+  <div class="buttons">
+    <button id="guessBtn">Проверить</button>
+    <button id="resetBtn">↻</button>
+  </div>
+  <div id="message" class="info"></div>
+  <div class="counter" id="counter">Попыток: 0 / 76</div>
+  <div class="reward-preview" id="rewardPreview">Награда: 5 🪙</div>
+  <div id="bonusButtons"></div>
+
+  <div class="bottom-bar">
+    <button class="shop" id="shopBtn">🛒<br>Магазин</button>
+    <button class="quests" id="questsBtn">🎯<br>Задания</button>
+    <button class="achieve" id="achieveBtn">🏅<br>Награды</button>
+    <button class="cases" id="casesBtn">📦<br>Кейсы</button>
+    <button class="settings" id="settingsBtn">⚙<br>Меню</button>
+  </div>
+</div>
+
+<div class="overlay" id="loginOverlay">
+  <div class="modal">
+    <h2>🔒 Админ</h2>
+    <div class="msg" id="loginError"></div>
+    <input type="password" id="passInput" placeholder="Пароль" inputmode="numeric">
+    <div class="row"><button id="loginBtn">Войти</button><button class="cancel" id="loginCancel">Отмена</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="shopOverlay">
+  <div class="shop-modal">
+    <div class="shop-header">
+      <h2>🛒 Магазин</h2>
+      <div class="shop-coins">🪙 <span id="shopCoins">0</span></div>
+      <button class="shop-close" id="shopClose">✕</button>
+    </div>
+    <div class="shop-tabs">
+      <button class="shop-tab active" data-tab="skins">🎨 Скины</button>
+      <button class="shop-tab" data-tab="abilities">⚡ Способ.</button>
+      <button class="shop-tab" data-tab="upgrades">📈 Улучш.</button>
+      <button class="shop-tab" data-tab="consumables">🎁 Расход.</button>
+    </div>
+    <div class="shop-content" id="shopContent"></div>
+  </div>
+</div>
+
+<div class="overlay" id="questsOverlay">
+  <div class="modal">
+    <h2>🎯 Ежедневные задания</h2>
+    <div id="questsList"></div>
+    <div class="row" style="margin-top:10px;"><button class="cancel" id="questsClose">Закрыть</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="achieveOverlay">
+  <div class="modal">
+    <h2>🏅 Достижения</h2>
+    <div class="ach-grid" id="achGrid"></div>
+    <div class="row" style="margin-top:10px;"><button class="cancel" id="achieveClose">Закрыть</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="casesOverlay">
+  <div class="modal">
+    <h2>📦 Кейсы</h2>
+    <div class="admin-info">🪙 Монет: <b id="casesCoins">0</b></div>
+    <div class="case-card" id="caseCard">
+      <div class="case-icon">🎁</div>
+      <div class="case-title">Обычный кейс</div>
+      <div class="case-desc">50 🪙 → случайный приз</div>
+    </div>
+    <div id="caseResult" style="display:none;"></div>
+    <div class="row" style="margin-top:10px;"><button class="cancel" id="casesClose">Закрыть</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="settingsOverlay">
+  <div class="modal">
+    <h2>⚙ Меню</h2>
+
+    <div class="section-title">Звук</div>
+    <div class="switch-row"><span>🔊 Звуки включены</span><input type="checkbox" id="soundToggle" checked></div>
+
+    <div class="section-title">Сложность</div>
+    <div class="grid2">
+      <button data-diff="easy" class="green" style="padding:10px;">😊 Лёгкая</button>
+      <button data-diff="medium" style="padding:10px;">😐 Средняя</button>
+      <button data-diff="hard" class="orange" style="padding:10px;">😠 Сложная</button>
+      <button data-diff="hardcore" class="red" style="padding:10px;">💀 Хардкор</button>
+    </div>
+    <div class="admin-info" id="diffView" style="font-size:12px;">Сейчас: средняя (1–100, 76 попыток)</div>
+
+    <div class="section-title">Аватар</div>
+    <div class="avatar-grid" id="avatarGrid"></div>
+
+    <div class="section-title">Уведомления</div>
+    <div class="row">
+      <button id="notifyBtn" class="green">🔔 Включить напоминания</button>
+    </div>
+    <div class="admin-info" id="notifyStatus" style="font-size:12px;">Не включены</div>
+
+    <div class="section-title">Prestige</div>
+    <div class="admin-info" id="prestigeInfo" style="font-size:12px;">Обнулись — получи +50% к монетам навсегда</div>
+    <button id="prestigeBtn" class="purple" style="margin-top:6px;">✨ Prestige</button>
+
+    <div class="section-title">Мини-игра</div>
+    <button id="minigameBtn" class="green">🎮 Ловить монетки</button>
+    <div class="admin-info" id="minigameInfo" style="font-size:12px;">Доступно 1 раз в час</div>
+
+    <div class="section-title">Друзья</div>
+    <div class="grid2">
+      <input type="text" id="friendNameInput" placeholder="Имя друга">
+      <button id="addFriendBtn" class="green">+</button>
+    </div>
+    <div class="msg" id="friendMsg"></div>
+    <div id="friendsList"></div>
+
+    <div class="section-title">Рекорды</div>
+    <div id="recordsList"></div>
+
+    <div class="row" style="margin-top:10px;"><button class="cancel" id="settingsClose">Закрыть</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="minigameOverlay">
+  <div class="modal">
+    <h2>🎮 Лови монетки!</h2>
+    <div class="admin-info">Собирай монетки за 15 секунд</div>
+    <div class="minigame-area" id="minigameArea">
+      <div class="minigame-score" id="mgScore">0</div>
+      <div class="minigame-timer" id="mgTimer">15</div>
+    </div>
+    <div class="row" style="margin-top:10px;"><button class="cancel" id="minigameClose">Закрыть</button></div>
+  </div>
+</div>
+
+<div class="overlay" id="duelOverlay">
+  <div class="modal">
+    <h2>⚔️ Дуэль</h2>
+    <div class="duel-bet" id="duelBetView" style="background:#fff8e1;padding:8px;border-radius:10px;font-weight:bold;color:#b8860b;margin-bottom:8px;">Ставка: 10 🪙</div>
+    <div class="admin-info" id="duelInfo" style="font-size:12px;"></div>
+    <div class="log-box" id="duelLog" style="max-height:120px;">Дуэль!</div>
+    <input type="number" id="duelInput" placeholder="Число" inputmode="numeric">
+    <div class="row" style="margin-top:6px;">
+      <button id="duelGuessBtn" class="green">Угадать</button>
+      <button class="cancel" id="duelClose">Выйти</button>
+    </div>
+  </div>
+</div>
+
+<div class="overlay" id="adminOverlay">
+  <div class="modal">
+    <h2>🛠 Админ</h2>
+    <div class="admin-info">🪙 Монет: <b id="coinsView">0</b></div>
+    <div class="section-title">Инфо</div>
+    <div class="admin-info">
+      Число: <b id="secretView">?</b><br>
+      Лимит: <b id="limitView">76</b> | Диапазон: <b id="rangeView">1–100</b><br>
+      Пароль: <b id="passView">456</b><br>
+      Prestige: <b id="prestigeView">0</b> | Ур: <b id="levelView">1</b> | XP: <b id="xpView">0</b>
+    </div>
+    <div class="section-title">Монеты</div>
+    <div class="grid2">
+      <input type="number" id="coinsAmountInput" placeholder="Сумма">
+      <button id="addCoinsBtn" class="green">+</button>
+      <button id="takeCoinsBtn" class="red">−</button>
+      <button id="resetCoinsBtn" class="orange">=</button>
+    </div>
+    <div class="section-title">Настройки</div>
+    <div class="grid2">
+      <input type="number" id="limitInput" placeholder="Лимит">
+      <input type="number" id="rangeInput" placeholder="Макс.">
+    </div>
+    <div class="row" style="margin-top:6px;">
+      <button id="applySettings">OK</button>
+      <button id="newGameAdmin">Новая</button>
+    </div>
+    <div class="section-title">Читы</div>
+    <div class="switch-row"><span>Всегда верно</span><input type="checkbox" id="cheatToggle"></div>
+    <div class="switch-row"><span>Показывать число</span><input type="checkbox" id="showSecretToggle"></div>
+    <div class="switch-row"><span>∞ попытки</span><input type="checkbox" id="infiniteToggle"></div>
+    <div class="admin-info" id="secretOnScreen" style="display:none;">Число: <b id="secretView2">?</b></div>
+    <div class="section-title">Пароль</div>
+    <input type="password" id="newPassInput" placeholder="Новый">
+    <button id="changePassBtn">Сменить</button>
+    <div class="section-title">Сброс</div>
+    <button id="resetStatsBtn" class="red">Сбросить ВСЁ</button>
+    <div class="msg" id="adminMsg"></div>
+    <div class="ok" id="adminOk"></div>
+    <div class="row" style="margin-top:10px;"><button class="cancel" id="adminClose">Закрыть</button></div>
+  </div>
+</div>
+
+<script>
+var MAX_ATTEMPTS=76, MAX_RANGE=100, ADMIN_PASSWORD='456', infiniteMode=false;
+var coins=0, BASE_COINS=5, BONUS_COINS=2, LOSE_COINS=0, DUEL_BET=10;
+var xp=0, level=1, prestige=0, avatar='🙂', soundOn=true, difficulty='medium';
+var secret, attempts, gameOver, cheatMode=false, guessesLog=[];
+var friends=[], duel=null, records=[];
+var easterEggUsed=false;
+var dailyDate='', dailyQuests=[];
+var achState={};
+var minigameLastPlayed=0;
+var bestStreak=0, currentStreak=0;
+var gamesPlayed=0, gamesWon=0, casesOpened=0;
+
+var shopState={
+  activeSkin:'default', ownedSkins:['default'],
+  ownedAbilities:[],
+  upgrades:{coinMult:0,xpMult:0,winBonus:0,discount:0,critChance:0},
+  consumables:{reveal:0,skip:0,x2coins:0,extraTries:0,oneTry:0},
+  activeConsumables:{}
+};
+
+var SKINS=[
+  {id:'default',name:'Классика',desc:'Базовое',price:0,css:'linear-gradient(135deg,#667eea,#764ba2)'},
+  {id:'neon',name:'Неон',desc:'Кислота',price:100,css:'linear-gradient(135deg,#00f5a0,#00d9f5)'},
+  {id:'fire',name:'Огонь',desc:'Пламя',price:150,css:'linear-gradient(135deg,#ff5252,#ff8f00)'},
+  {id:'space',name:'Космос',desc:'Тьма',price:200,css:'linear-gradient(135deg,#0f0c29,#302b63)'},
+  {id:'rainbow',name:'Радуга',desc:'Переливы',price:400,css:'linear-gradient(135deg,#ff5252,#ffeb3b,#4fc3f7,#ba68c8)'}
+];
+var ABILITIES=[
+  {id:'exactHint',name:'Точная',desc:'±10 раз за игру',price:200,icon:'🔍'},
+  {id:'autoHint',name:'Авто',desc:'Подсказка после 5',price:150,icon:'💡'},
+  {id:'doubleReward',name:'Удвоение',desc:'+50% награды',price:300,icon:'💰'},
+  {id:'insurance',name:'Страховка',desc:'Не теряешь при проигр.',price:250,icon:'🛡'},
+  {id:'extraTries',name:'Экстра',desc:'+10 попыток',price:200,icon:'➕'}
+];
+var UPGRADES=[
+  {id:'coinMult',name:'Множитель',desc:'+15%/ур',max:5,basePrice:100,icon:'💵'},
+  {id:'xpMult',name:'XP x',desc:'+15%/ур',max:5,basePrice:120,icon:'⭐'},
+  {id:'winBonus',name:'Бонус',desc:'+3/ур',max:5,basePrice:150,icon:'🎁'},
+  {id:'discount',name:'Скидка',desc:'-5%/ур',max:5,basePrice:200,icon:'🏷'},
+  {id:'critChance',name:'Крит',desc:'+10% x2/ур',max:5,basePrice:180,icon:'⚡'}
+];
+var CONSUMABLES=[
+  {id:'reveal',name:'Раскрыть',desc:'Показать 2с',price:30,icon:'👁'},
+  {id:'skip',name:'Чёт/нечет',desc:'Подсказка',price:25,icon:'⏭'},
+  {id:'x2coins',name:'x2 монеты',desc:'Удвоить',price:40,icon:'×2'},
+  {id:'extraTries',name:'Сброс',desc:'Все попытки',price:50,icon:'🔄'},
+  {id:'oneTry',name:'+1',desc:'1 попытка',price:10,icon:'➕'}
+];
+var SHOP_DATA={skins:SKINS,abilities:ABILITIES,upgrades:UPGRADES,consumables:CONSUMABLES};
+var currentTab='skins';
+
+var AVATARS=['🙂','😎','🤖','👽','🦊','🐼','🐯','🦁','🐸','🦄'];
+var DIFFICULTY={
+  easy:{name:'Лёгкая',range:50,attempts:50},
+  medium:{name:'Средняя',range:100,attempts:76},
+  hard:{name:'Сложная',range:200,attempts:50},
+  hardcore:{name:'Хардкор',range:500,attempts:30}
+};
+
+var ACHIEVEMENTS=[
+  {id:'firstWin',name:'Первая победа',desc:'Угадай 1 раз',icon:'🎉',reward:20,check:function(){return gamesWon>=1;}},
+  {id:'lucky',name:'Везунчик',desc:'С 1 попытки',icon:'🍀',reward:50,check:function(){return attempts===1&&gameOver;}},
+  {id:'lvl10',name:'10 ур.',desc:'Достигни 10 ур.',icon:'🔟',reward:100,check:function(){return level>=10;}},
+  {id:'lvl25',name:'25 ур.',desc:'Достигни 25 ур.',icon:'🏆',reward:200,check:function(){return level>=25;}},
+  {id:'rich',name:'Богач',desc:'1000 монет',icon:'💰',reward:100,check:function(){return coins>=1000;}},
+  {id:'streak5',name:'Серия 5',desc:'5 побед подряд',icon:'🔥',reward:80,check:function(){return bestStreak>=5;}},
+  {id:'streak10',name:'Серия 10',desc:'10 побед подряд',icon:'⭐',reward:200,check:function(){return bestStreak>=10;}},
+  {id:'case10',name:'Кейсер',desc:'10 кейсов',icon:'📦',reward:100,check:function(){return casesOpened>=10;}},
+  {id:'prestige1',name:'Ребёрн',desc:'1 prestige',icon:'✨',reward:150,check:function(){return prestige>=1;}},
+  {id:'player50',name:'Игрок',desc:'50 игр',icon:'🎮',reward:50,check:function(){return gamesPlayed>=50;}}
+];
+
+function $(id){return document.getElementById(id);}
+
+function save(){try{localStorage.setItem('guessV5',JSON.stringify({
+  coins:coins,xp:xp,level:level,prestige:prestige,avatar:avatar,soundOn:soundOn,
+  difficulty:difficulty,friends:friends,records:records,shopState:shopState,
+  MAX_ATTEMPTS:MAX_ATTEMPTS,MAX_RANGE:MAX_RANGE,BASE_COINS:BASE_COINS,BONUS_COINS:BONUS_COINS,
+  LOSE_COINS:LOSE_COINS,DUEL_BET:DUEL_BET,easterEggUsed:easterEggUsed,
+  dailyDate:dailyDate,dailyQuests:dailyQuests,achState:achState,
+  minigameLastPlayed:minigameLastPlayed,bestStreak:bestStreak,currentStreak:currentStreak,
+  gamesPlayed:gamesPlayed,gamesWon:gamesWon,casesOpened:casesOpened
+}));}catch(e){}}
+function load(){try{var s=localStorage.getItem('guessV5');if(s){var d=JSON.parse(s);
+  coins=d.coins||0;xp=d.xp||0;level=d.level||1;prestige=d.prestige||0;
+  avatar=d.avatar||'🙂';soundOn=d.soundOn!==false;difficulty=d.difficulty||'medium';
+  friends=d.friends||[];records=d.records||[];
+  MAX_ATTEMPTS=d.MAX_ATTEMPTS||76;MAX_RANGE=d.MAX_RANGE||100;
+  BASE_COINS=d.BASE_COINS!=null?d.BASE_COINS:5;BONUS_COINS=d.BONUS_COINS!=null?d.BONUS_COINS:2;
+  LOSE_COINS=d.LOSE_COINS||0;DUEL_BET=d.DUEL_BET!=null?d.DUEL_BET:10;
+  easterEggUsed=d.easterEggUsed||false;
+  dailyDate=d.dailyDate||'';dailyQuests=d.dailyQuests||[];
+  achState=d.achState||{};
+  minigameLastPlayed=d.minigameLastPlayed||0;
+  bestStreak=d.bestStreak||0;currentStreak=d.currentStreak||0;
+  gamesPlayed=d.gamesPlayed||0;gamesWon=d.gamesWon||0;casesOpened=d.casesOpened||0;
+  if(d.shopState){
+    if(d.shopState.activeSkin)shopState.activeSkin=d.shopState.activeSkin;
+    if(d.shopState.ownedSkins)shopState.ownedSkins=d.shopState.ownedSkins;
+    if(d.shopState.ownedAbilities)shopState.ownedAbilities=d.shopState.ownedAbilities;
+    if(d.shopState.upgrades)Object.assign(shopState.upgrades,d.shopState.upgrades);
+    if(d.shopState.consumables)Object.assign(shopState.consumables,d.shopState.consumables);
+  }
+}}catch(e){}}
+
+var audioCtx=null;
+function beep(freq,dur,type){if(!soundOn)return;try{
+  if(!audioCtx)audioCtx=new(window.AudioContext||window.webkitAudioContext)();
+  var o=audioCtx.createOscillator(),g=audioCtx.createGain();
+  o.type=type||'sine';o.frequency.value=freq;o.connect(g);g.connect(audioCtx.destination);
+  g.gain.setValueAtTime(0.1,audioCtx.currentTime);
+  g.gain.exponentialRampToValueAtTime(0.001,audioCtx.currentTime+dur);
+  o.start();o.stop(audioCtx.currentTime+dur);
+}catch(e){}}
+function soundWin(){beep(660,.1);setTimeout(function(){beep(880,.15);},100);setTimeout(function(){beep(1100,.2);},250);}
+function soundLose(){beep(300,.18);setTimeout(function(){beep(200,.25);},180);}
+
+function xpForLevel(l){return l*100;}
+function addXp(amount){
+  xp+=amount;
+  while(xp>=xpForLevel(level)){xp-=xpForLevel(level);level++;
+    beep(1000,.1);setTimeout(function(){beep(1400,.15);},100);
+    showAnim('Уровень '+level+'!','#667eea');}
+  updateXpUI();checkAchievements();
+}
+function updateXpUI(){
+  $('levelBadge').textContent='Ур. '+level;
+  $('xpText').textContent=xp+' / '+xpForLevel(level)+' XP';
+  $('xpFill').style.width=(xp/xpForLevel(level)*100)+'%';
+  $('levelView').textContent=level;$('xpView').textContent=xp;
+  var pb=$('prestigeBadge');
+  if(prestige>0){pb.style.display='';pb.textContent='✨'+prestige;}else{pb.style.display='none';}
+  $('prestigeView').textContent=prestige;
+}
+
+function showAnim(text,color){
+  var el=document.createElement('div');el.className='coins-anim';el.textContent=text;
+  el.style.color=color||'#ffc107';document.body.appendChild(el);
+  setTimeout(function(){el.remove();},1400);
+}
+function updateCoinsUI(){
+  $('coinsDisplay').textContent=coins;$('coinsView').textContent=coins;
+  $('shopCoins').textContent=coins;$('casesCoins').textContent=coins;
+}
+
+function calcReward(tries){
+  var bonus=BONUS_COINS*(MAX_ATTEMPTS-tries);if(bonus<0)bonus=0;
+  var base=BASE_COINS+bonus;
+  var mult=(1+shopState.upgrades.coinMult*0.15)*(1+prestige*0.5);
+  base=Math.floor(base*mult);
+  base+=shopState.upgrades.winBonus*3;
+  if(shopState.ownedAbilities.indexOf('doubleReward')!==-1)base=Math.floor(base*1.5);
+  if(Math.random()<shopState.upgrades.critChance*0.1)base*=2;
+  return base;
+}
+function updateRewardPreview(){
+  var next=attempts===0?1:Math.min(attempts+1,MAX_ATTEMPTS);
+  $('rewardPreview').textContent='Награда: '+calcReward(next)+' 🪙';
+}
+
+function newGame(){
+  secret=Math.floor(Math.random()*MAX_RANGE)+1;attempts=0;gameOver=false;guessesLog=[];
+  shopState.activeConsumables={};
+  $('message').textContent='';$('message').className='info';
+  updateCounter();updateCoinsUI();updateRewardPreview();
+  $('guessInput').value='';$('guessInput').disabled=false;$('guessBtn').disabled=false;
+  $('hintText').innerHTML='Я загадал число от 1 до '+MAX_RANGE+'.<br>У тебя '+MAX_ATTEMPTS+' попыток!';
+  $('guessInput').max=MAX_RANGE;
+  updateAdminInfo();renderBonusButtons();
+}
+function renderBonusButtons(){
+  var bar=$('bonusButtons');bar.innerHTML='';
+  var items=[];
+  if(shopState.consumables.reveal>0)items.push({id:'reveal',text:'👁 Раскрыть ('+shopState.consumables.reveal+')'});
+  if(shopState.consumables.skip>0)items.push({id:'skip',text:'⏭ Чёт ('+shopState.consumables.skip+')'});
+  if(shopState.consumables.extraTries>0)items.push({id:'extraTries',text:'🔄 Сброс ('+shopState.consumables.extraTries+')'});
+  if(shopState.consumables.oneTry>0)items.push({id:'oneTry',text:'➕ +1 ('+shopState.consumables.oneTry+')'});
+  if(shopState.ownedAbilities.indexOf('exactHint')!==-1)items.push({id:'exactHint',text:'🔍 ±10'});
+  if(items.length===0)return;
+  var container=document.createElement('div');
+  container.style.cssText='margin-top:8px;display:flex;gap:5px;flex-wrap:wrap;justify-content:center;';
+  items.forEach(function(it){
+    var b=document.createElement('button');
+    b.textContent=it.text;b.style.cssText='flex:0 0 auto;padding:7px 10px;font-size:11px;background:#ff9800;';
+    b.addEventListener('click',function(){useBonus(it.id);});
+    container.appendChild(b);
+  });
+  bar.appendChild(container);
+}
+function useBonus(id){
+  if(gameOver)return;
+  if(id==='reveal'){if(shopState.consumables.reveal<=0)return;shopState.consumables.reveal--;
+    $('message').textContent='👁 Число: '+secret;$('message').className='info';
+    setTimeout(function(){if(!gameOver)$('message').textContent='Продолжай...';},2000);}
+  else if(id==='skip'){if(shopState.consumables.skip<=0)return;shopState.consumables.skip--;
+    $('message').textContent='⏭ Число '+(secret%2===0?'чётное':'нечётное');$('message').className='info';}
+  else if(id==='extraTries'){if(shopState.consumables.extraTries<=0)return;shopState.consumables.extraTries--;
+    attempts=0;updateCounter();$('message').textContent='🔄 Сброшено!';$('message').className='info';}
+  else if(id==='oneTry'){if(shopState.consumables.oneTry<=0)return;shopState.consumables.oneTry--;
+    if(attempts>0)attempts--;updateCounter();$('message').textContent='➕ +1 попытка';$('message').className='info';}
+  else if(id==='exactHint'){
+    if(shopState.activeConsumables.exactHintUsed)return;
+    shopState.activeConsumables.exactHintUsed=true;
+    var lo=Math.max(1,secret-10),hi=Math.min(MAX_RANGE,secret+10);
+    $('message').textContent='🔍 Подсказка: '+lo+'–'+hi;$('message').className='info';}
+  save();renderBonusButtons();beep(880,.08);
+}
+
+function updateCounter(){$('counter').innerHTML='Попыток: <b>'+attempts+'</b> / '+MAX_ATTEMPTS;}
+function updateAdminInfo(){
+  $('secretView').textContent=secret;$('secretView2').textContent=secret;
+  $('limitView').textContent=MAX_ATTEMPTS;$('rangeView').textContent='1–'+MAX_RANGE;
+  $('passView').textContent=ADMIN_PASSWORD;updateXpUI();
+}
+
+function endGame(isWin){
+  gameOver=true;$('guessInput').disabled=true;$('guessBtn').disabled=true;
+  gamesPlayed++;
+  if(isWin){
+    gamesWon++;currentStreak++;
+    if(currentStreak>bestStreak)bestStreak=currentStreak;
+    var reward=calcReward(attempts);
+    var baseXp=20+Math.max(0,MAX_ATTEMPTS-attempts)*2;
+    var xpGain=Math.floor(baseXp*(1+shopState.upgrades.xpMult*0.15));
+    coins+=reward;updateCoinsUI();
+    showAnim('+'+reward+' 🪙','#4caf50');
+    $('message').textContent='🎉 Верно! Это '+secret+'. Попыток: '+attempts+' | +'+reward+' 🪙 | +'+xpGain+' XP';
+    $('message').className='win';addXp(xpGain);soundWin();
+    records.push({attempts:attempts,range:MAX_RANGE,date:new Date().toLocaleDateString()});
+    records.sort(function(a,b){return a.attempts-b.attempts;});
+    records=records.slice(0,10);
+    if(currentStreak===3){coins+=30;showAnim('🔥 Серия 3! +30 🪙','#ff5722');}
+    if(currentStreak===5){coins+=80;showAnim('🔥 Серия 5! +80 🪙','#ff5722');}
+    updateQuests('win');
+    if(attempts===1)updateQuests('lucky');
+  }else{
+    currentStreak=0;
+    var loseAmount=LOSE_COINS;
+    if(shopState.ownedAbilities.indexOf('insurance')!==-1)loseAmount=0;
+    if(loseAmount>0){coins-=loseAmount;if(coins<0)coins=0;updateCoinsUI();
+      showAnim('−'+loseAmount+' 🪙','#f44336');
+      $('message').textContent='💀 Кончились! Было '+secret+' | −'+loseAmount+' 🪙';}
+    else $('message').textContent='💀 Кончились! Было загадано '+secret;
+    $('message').className='lose';soundLose();
+    updateQuests('lose');
+  }
+  updateQuests('play');
+  save();renderBonusButtons();checkAchievements();
+}
+
+function checkGuess(){
+  if(gameOver)return;
+  var val=$('guessInput').value.trim();
+  if(val==='776'&&!easterEggUsed){
+    easterEggUsed=true;coins+=100;updateCoinsUI();save();
+    showAnim('🥚 Секретный код! +100 🪙','#9c27b0');
+    $('message').textContent='🥚 Пасхалка! +100 🪙';
+    $('message').className='win';
+    beep(1500,.2);setTimeout(function(){beep(1800,.2);},200);
+    $('guessInput').value='';return;
+  }
+  var value=Number(val);
+  if(!value||value<1||value>MAX_RANGE){
+    $('message').textContent='Введи число от 1 до '+MAX_RANGE+'!';$('message').className='info';return;
+  }
+  attempts++;updateCounter();
+  var status=value===secret?'WIN':value<secret?'меньше':'больше';
+  if(cheatMode)status='CHEAT';
+  guessesLog.push('#'+attempts+': '+value+' ('+status+')');
+  if(value===secret||cheatMode){
+    var reward=calcReward(attempts);
+    $('message').textContent=(cheatMode&&value!==secret)?'🤫 Читерство! Было '+secret+' | +'+reward+' 🪙':'🎉 Верно! Это '+secret+'. Попыток: '+attempts+' | +'+reward+' 🪙';
+    $('message').className='win';endGame(true);
+  }else if(value<secret){
+    $('message').textContent='📈 Больше!';$('message').className='info';beep(400,.08);updateRewardPreview();
+    if(shopState.ownedAbilities.indexOf('autoHint')!==-1&&attempts>=5&&attempts%3===0)
+      $('message').textContent+=' Разница ~'+(secret-value);
+  }else{
+    $('message').textContent='📉 Меньше!';$('message').className='info';beep(600,.08);updateRewardPreview();
+    if(shopState.ownedAbilities.indexOf('autoHint')!==-1&&attempts>=5&&attempts%3===0)
+      $('message').textContent+=' Разница ~'+(value-secret);
+  }
+  if(!gameOver&&!infiniteMode&&attempts>=MAX_ATTEMPTS)endGame(false);
+  $('guessInput').value='';if(!gameOver)$('guessInput').focus();
+}
+
+function renderShop(){
+  $('shopCoins').textContent=coins;
+  var content=$('shopContent');content.innerHTML='';
+  var items=SHOP_DATA[currentTab];
+  items.forEach(function(item){
+    var div=document.createElement('div');div.className='shop-item';
+    var discount=1-shopState.upgrades.discount*0.05;
+    var fp=Math.floor(item.price*discount);
+    if(currentTab==='skins'){
+      var owned=shopState.ownedSkins.indexOf(item.id)!==-1;
+      var active=shopState.activeSkin===item.id;
+      div.innerHTML='<div class="shop-swatch" style="background:'+item.css+'"></div><div class="shop-info"><div class="shop-name">'+item.name+(active?' <span class="active-item-badge">✓</span>':'')+'</div><div class="shop-desc">'+item.desc+'</div></div><button class="shop-buy '+(owned?'owned':'')+'" data-id="'+item.id+'">'+(active?'Выбран':owned?'Выбрать':fp+' 🪙')+'</button>';
+    }else if(currentTab==='abilities'){
+      var o2=shopState.ownedAbilities.indexOf(item.id)!==-1;
+      div.innerHTML='<div class="shop-icon">'+item.icon+'</div><div class="shop-info"><div class="shop-name">'+item.name+'</div><div class="shop-desc">'+item.desc+'</div></div><button class="shop-buy '+(o2?'owned':'')+'" data-id="'+item.id+'"'+(o2?' disabled':'')+'>'+(o2?'✓':fp+' 🪙')+'</button>';
+    }else if(currentTab==='upgrades'){
+      var lvl=shopState.upgrades[item.id]||0;
+      var maxed=lvl>=item.max;
+      var up=Math.floor(item.basePrice*(lvl+1)*discount);
+      var dots='';
+      for(var i=0;i<item.max;i++)dots+='<span class="level-dot '+(i<lvl?'filled':'')+'"></span>';
+      div.innerHTML='<div class="shop-icon">'+item.icon+'</div><div class="shop-info"><div class="shop-name">'+item.name+'</div><div class="shop-dots">'+dots+'</div><div class="shop-desc">'+item.desc+'</div></div><button class="shop-buy '+(maxed?'owned':'')+'" data-id="'+item.id+'"'+(maxed?' disabled':'')+'>'+(maxed?'MAX':up+' 🪙')+'</button>';
+    }else{
+      var o3=shopState.consumables[item.id]||0;
+      div.innerHTML='<div class="shop-icon">'+item.icon+'</div><div class="shop-info"><div class="shop-name">'+item.name+(o3>0?' (×'+o3+')':'')+'</div><div class="shop-desc">'+item.desc+'</div></div><button class="shop-buy" data-id="'+item.id+'">'+fp+' 🪙</button>';
+    }
+    content.appendChild(div);
+  });
+  content.querySelectorAll('.shop-buy:not([disabled])').forEach(function(btn){
+    btn.addEventListener('click',function(){buyItem(btn.dataset.id);});
+  });
+}
+function buyItem(id){
+  var arr=SHOP_DATA[currentTab];var item=null;
+  for(var i=0;i<arr.length;i++)if(arr[i].id===id){item=arr[i];break;}
+  if(!item)return;
+  var discount=1-shopState.upgrades.discount*0.05;
+  if(currentTab==='skins'){
+    if(shopState.ownedSkins.indexOf(id)!==-1){shopState.activeSkin=id;save();renderShop();applySkin();beep(880,.06);return;}
+    var p=Math.floor(item.price*discount);
+    if(coins<p){toast('Мало монет');return;}
+    coins-=p;shopState.ownedSkins.push(id);shopState.activeSkin=id;applySkin();
+  }else if(currentTab==='abilities'){
+    if(shopState.ownedAbilities.indexOf(id)!==-1)return;
+    var p2=Math.floor(item.price*discount);
+    if(coins<p2){toast('Мало монет');return;}
+    coins-=p2;shopState.ownedAbilities.push(id);
+  }else if(currentTab==='upgrades'){
+    var lvl=shopState.upgrades[id]||0;
+    if(lvl>=item.max)return;
+    var p3=Math.floor(item.basePrice*(lvl+1)*discount);
+    if(coins<p3){toast('Мало монет');return;}
+    coins-=p3;shopState.upgrades[id]=lvl+1;
+  }else{
+    var p4=Math.floor(item.price*discount);
+    if(coins<p4){toast('Мало монет');return;}
+    coins-=p4;shopState.consumables[id]=(shopState.consumables[id]||0)+1;
+  }
+  save();updateCoinsUI();renderShop();renderBonusButtons();updateRewardPreview();
+  beep(880,.08);setTimeout(function(){beep(1100,.08);},80);
+}
+function toast(msg){
+  var el=document.createElement('div');el.className='toast';el.textContent=msg;
+  document.body.appendChild(el);setTimeout(function(){el.remove();},1500);
+}
+function applySkin(){
+  var s=null;for(var i=0;i<SKINS.length;i++)if(SKINS[i].id===shopState.activeSkin){s=SKINS[i];break;}
+  document.body.style.background=(s||SKINS[0]).css;
+}
+
+function todayStr(){var d=new Date();return d.getFullYear()+'-'+(d.getMonth()+1)+'-'+d.getDate();}
+function generateQuests(){
+  dailyDate=todayStr();
+  dailyQuests=[
+    {id:'q1',type:'win',name:'Победи 3 раза',icon:'🏆',target:3,progress:0,reward:50,claimed:false},
+    {id:'q2',type:'play',name:'Сыграй 5 игр',icon:'🎮',target:5,progress:0,reward:30,claimed:false},
+    {id:'q3',type:'lucky',name:'Угадай с 1 попытки',icon:'🍀',target:1,progress:0,reward:80,claimed:false}
+  ];
+}
+function ensureQuests(){
+  if(dailyDate!==todayStr()||!dailyQuests.length){generateQuests();save();}
+}
+function updateQuests(action){
+  ensureQuests();
+  dailyQuests.forEach(function(q){
+    if(q.claimed)return;
+    if(action==='win'&&q.type==='win')q.progress++;
+    if(action==='play'&&q.type==='play')q.progress++;
+    if(action==='lucky'&&q.type==='lucky')q.progress=1;
+    if(q.progress>q.target)q.progress=q.target;
+  });
+  save();
+}
+function renderQuests(){
+  ensureQuests();
+  var list=$('questsList');list.innerHTML='';
+  dailyQuests.forEach(function(q){
+    var done=q.progress>=q.target;
+    var div=document.createElement('div');
+    div.className='quest-item'+(q.claimed?' done':'');
+    div.innerHTML='<div class="quest-icon">'+q.icon+'</div><div class="quest-info"><div class="quest-name">'+q.name+'</div><div class="quest-progress">Прогресс: '+q.progress+' / '+q.target+'</div><div class="quest-reward">+'+q.reward+' 🪙</div></div>';
+    if(done&&!q.claimed){
+      var b=document.createElement('button');b.className='green';b.textContent='Забрать';
+      b.addEventListener('click',function(){coins+=q.reward;q.claimed=true;updateCoinsUI();save();renderQuests();beep(880,.1);});
+      div.appendChild(b);
+    }else if(q.claimed){
+      var s=document.createElement('div');s.style.cssText='font-size:20px;';s.textContent='✅';div.appendChild(s);
+    }
+    list.appendChild(div);
+  });
+}
+
+function checkAchievements(){
+  ACHIEVEMENTS.forEach(function(a){
+    if(achState[a.id])return;
+    if(a.check()){
+      achState[a.id]=true;
+      coins+=a.reward;updateCoinsUI();
+      showAnim('🏅 '+a.name+'! +'+a.reward+' 🪙','#ffc107');
+      beep(1200,.15);setTimeout(function(){beep(1500,.2);},150);
+    }
+  });
+  save();
+}
+function renderAchievements(){
+  var grid=$('achGrid');grid.innerHTML='';
+  ACHIEVEMENTS.forEach(function(a){
+    var div=document.createElement('div');
+    div.className='ach-item'+(achState[a.id]?' unlocked':'');
+    div.innerHTML='<div class="ach-icon">'+a.icon+'</div><div class="ach-name">'+a.name+'</div>';
+    grid.appendChild(div);
+  });
+}
+
+function openCase(){
+  if(coins<50){toast('Нужно 50 🪙');return;}
+  coins-=50;casesOpened++;updateCoinsUI();save();
+  var r=Math.random();
+  var prize='';
+  if(r<0.4){var amt=10+Math.floor(Math.random()*30);coins+=amt;prize='🪙 +'+amt+' монет';}
+  else if(r<0.7){var xpA=50+Math.floor(Math.random()*150);addXp(xpA);prize='⭐ +'+xpA+' XP';}
+  else if(r<0.9){var cons=['reveal','skip','x2coins','extraTries','oneTry'];var c=cons[Math.floor(Math.random()*cons.length)];
+    shopState.consumables[c]=(shopState.consumables[c]||0)+1;
+    var ci=null;for(var k=0;k<CONSUMABLES.length;k++)if(CONSUMABLES[k].id===c){ci=CONSUMABLES[k];break;}
+    prize='🎁 '+ci.name;}
+  else{var amt2=200+Math.floor(Math.random()*300);coins+=amt2;prize='💎 ДЖЕКПОТ! +'+amt2+' 🪙';}
+  updateCoinsUI();save();
+  var res=$('caseResult');res.style.display='';res.textContent=prize;
+  beep(880,.1);setTimeout(function(){beep(1200,.15);},100);setTimeout(function(){beep(1600,.2);},250);
+  renderBonusButtons();updateXpUI();checkAchievements();
+}
+
+function renderSettings(){
+  $('soundToggle').checked=soundOn;
+  var dv=$('diffView');var d=DIFFICULTY[difficulty];
+  dv.textContent='Сейчас: '+d.name+' (1–'+d.range+', '+d.attempts+' попыток)';
+  $('prestigeInfo').textContent='Prestige: '+prestige+' | Множитель монет: ×'+(1+prestige*0.5).toFixed(1);
+  var grid=$('avatarGrid');grid.innerHTML='';
+  AVATARS.forEach(function(av){
+    var div=document.createElement('div');
+    div.className='avatar-item'+(avatar===av?' active':'');
+    div.textContent=av;
+    div.addEventListener('click',function(){avatar=av;save();renderSettings();applyAvatar();beep(880,.06);});
+    grid.appendChild(div);
+  });
+  renderFriends();
+  renderRecords();
+  if('Notification' in window){
+    $('notifyStatus').textContent=Notification.permission==='granted'?'✅ Включены':'Не включены';
+  }else{$('notifyStatus').textContent='❌ Не поддерживается';}
+  var cooldown=3600000;
+  var left=cooldown-(Date.now()-minigameLastPlayed);
+  if(left>0){$('minigameInfo').textContent='⏱ Доступно через '+Math.ceil(left/60000)+' мин';$('minigameBtn').disabled=true;}
+  else{$('minigameInfo').textContent='✅ Готово к игре!';$('minigameBtn').disabled=false;}
+}
+function applyAvatar(){$('avatarView').textContent=avatar;}
+
+function applyDifficulty(name){
+  if(!DIFFICULTY[name])return;
+  difficulty=name;
+  MAX_RANGE=DIFFICULTY[name].range;
+  MAX_ATTEMPTS=DIFFICULTY[name].attempts;
+  save();newGame();renderSettings();
+}
+
+function doPrestige(){
+  if(level<10){toast('Нужен уровень 10');return;}
+  if(!confirm('Prestige: обнулит уровень, XP, монеты, магазин. Получишь +50% к монетам навсегда. Продолжить?'))return;
+  prestige++;level=1;xp=0;coins=0;
+  shopState.ownedAbilities=[];shopState.upgrades={coinMult:0,xpMult:0,winBonus:0,discount:0,critChance:0};
+  shopState.consumables={reveal:0,skip:0,x2coins:0,extraTries:0,oneTry:0};
+  shopState.ownedSkins=['default'];shopState.activeSkin='default';
+  save();newGame();updateXpUI();updateCoinsUI();applySkin();renderSettings();
+  showAnim('✨ Prestige '+prestige+'!','#ffc107');
+  beep(1200,.2);setTimeout(function(){beep(1600,.3);},200);checkAchievements();
+}
+
+function renderFriends(){
+  var list=$('friendsList');list.innerHTML='';
+  if(friends.length===0){list.innerHTML='<div style="font-size:12px;color:#999;padding:8px;">Пока нет друзей</div>';return;}
+  friends.forEach(function(f,i){
+    var div=document.createElement('div');
+    div.style.cssText='display:flex;align-items:center;justify-content:space-between;background:#f7f7f7;border-radius:8px;padding:6px 8px;margin:4px 0;font-size:12px;';
+    div.innerHTML='<span><b>'+f.name+'</b></span><span><button data-i="'+i+'" class="duel-btn orange" style="padding:5px 8px;font-size:10px;">⚔</button><button data-i="'+i+'" class="remove-btn red" style="padding:5px 8px;font-size:10px;margin-left:4px;">✕</button></span>';
+    list.appendChild(div);
+  });
+  list.querySelectorAll('.duel-btn').forEach(function(b){b.addEventListener('click',function(){startDuel(friends[Number(b.dataset.i)]);});});
+  list.querySelectorAll('.remove-btn').forEach(function(b){b.addEventListener('click',function(){friends.splice(Number(b.dataset.i),1);save();renderFriends();});});
+}
+function addFriend(){
+  var n=$('friendNameInput').value.trim();
+  $('friendMsg').textContent='';
+  if(!n){$('friendMsg').textContent='Введи имя';return;}
+  if(friends.some(function(f){return f.name.toLowerCase()===n.toLowerCase();})){$('friendMsg').textContent='Уже есть';return;}
+  friends.push({name:n,wins:0,losses:0});$('friendNameInput').value='';
+  save();renderFriends();
+}
+
+function startDuel(friend){
+  if(coins<DUEL_BET){toast('Нужно '+DUEL_BET+' 🪙');return;}
+  $('settingsOverlay').classList.remove('show');
+  duel={friend:friend,secret:Math.floor(Math.random()*MAX_RANGE)+1,yourTries:0,enemyTries:0,finished:false,log:[],low:1,high:MAX_RANGE};
+  $('duelBetView').textContent='Ставка: '+DUEL_BET+' 🪙';
+  $('duelInfo').innerHTML='<b>'+friend.name+'</b> · Попыток: <span id="youT">0</span> vs <span id="enemyT">0</span>';
+  $('duelLog').textContent='';
+  pushDuelLog('⚔ Дуэль с '+friend.name+'! 1–'+MAX_RANGE);
+  $('duelInput').value='';$('duelInput').disabled=false;$('duelGuessBtn').disabled=false;
+  $('duelOverlay').classList.add('show');$('duelInput').focus();
+}
+function pushDuelLog(t){if(!duel)return;duel.log.push(t);if(duel.log.length>20)duel.log.shift();
+  $('duelLog').textContent=duel.log.join('\n');$('duelLog').scrollTop=$('duelLog').scrollHeight;}
+function enemyMove(){
+  if(!duel||duel.finished)return;
+  duel.enemyTries++;
+  var yt=$('youT');if(yt)yt.textContent=duel.yourTries;
+  var et=$('enemyT');if(et)et.textContent=duel.enemyTries;
+  var g=Math.floor(Math.random()*(duel.high-duel.low+1))+duel.low;
+  if(g===duel.secret){pushDuelLog('🤖 '+duel.friend.name+': '+g+' — УГАДАЛ!');finishDuel(false);return;}
+  if(g<duel.secret){pushDuelLog('🤖 '+duel.friend.name+': '+g+' — больше');duel.low=Math.max(duel.low,g+1);}
+  else{pushDuelLog('🤖 '+duel.friend.name+': '+g+' — меньше');duel.high=Math.min(duel.high,g-1);}
+}
+function yourMove(){
+  if(!duel||duel.finished)return;
+  var v=Number($('duelInput').value);
+  if(!v||v<1||v>MAX_RANGE){pushDuelLog('⚠ Введи 1–'+MAX_RANGE);return;}
+  duel.yourTries++;
+  var yt=$('youT');if(yt)yt.textContent=duel.yourTries;
+  if(v===duel.secret){pushDuelLog('🎯 Ты: '+v+' — УГАДАЛ!');finishDuel(true);return;}
+  if(v<duel.secret)pushDuelLog('🎯 Ты: '+v+' — больше');
+  else pushDuelLog('🎯 Ты: '+v+' — меньше');
+  $('duelInput').value='';setTimeout(enemyMove,400);
+}
+function finishDuel(win){
+  if(!duel||duel.finished)return;
+  duel.finished=true;$('duelInput').disabled=true;$('duelGuessBtn').disabled=true;
+  var f=duel.friend;var idx=-1;
+  for(var i=0;i<friends.length;i++)if(friends[i].name===f.name){idx=i;break;}
+  if(win){coins+=DUEL_BET;if(idx!==-1)friends[idx].wins++;showAnim('+'+DUEL_BET+' 🪙','#4caf50');
+    pushDuelLog('🏆 Ты выиграл!');addXp(30);soundWin();}
+  else{coins-=DUEL_BET;if(coins<0)coins=0;if(idx!==-1)friends[idx].losses++;showAnim('−'+DUEL_BET+' 🪙','#f44336');
+    pushDuelLog('💀 Проиграл');addXp(10);soundLose();}
+  updateCoinsUI();save();
+}
+
+function renderRecords(){
+  var list=$('recordsList');list.innerHTML='';
+  if(!records.length){list.innerHTML='<div style="font-size:12px;color:#999;padding:8px;">Нет рекордов</div>';return;}
+  records.slice(0,5).forEach(function(r,i){
+    var div=document.createElement('div');
+    div.style.cssText='display:flex;justify-content:space-between;background:#f7f7f7;border-radius:8px;padding:6px 8px;margin:3px 0;font-size:12px;';
+    div.innerHTML='<span><b>#'+(i+1)+'</b></span><span>'+r.attempts+' поп.</span><span>1–'+r.range+'</span>';
+    list.appendChild(div);
+  });
+}
+
+function startMinigame(){
+  var cooldown=3600000;
+  if(Date.now()-minigameLastPlayed<cooldown){toast('Ещё рано');return;}
+  $('minigameOverlay').classList.add('show');
+  var area=$('minigameArea');
+  Array.from(area.querySelectorAll('.minigame-coin')).forEach(function(c){c.remove();});
+  var score=0,timeLeft=15;
+  var scoreEl=$('mgScore');scoreEl.textContent='0';
+  var timerEl=$('mgTimer');timerEl.textContent='15';
+  function spawnCoin(){
+    if(timeLeft<=0)return;
+    var c=document.createElement('div');
+    c.className='minigame-coin';
+    c.textContent='🪙';
+    c.style.left=(Math.random()*85+2)+'%';
+    c.style.top=(Math.random()*70+15)+'%';
+    c.addEventListener('click',function(){
+      score++;scoreEl.textContent=score;
+      beep(1200,.05,'square');
+      c.remove();
+    });
+    area.appendChild(c);
+    setTimeout(function(){if(c.parentNode)c.remove();},2000);
+  }
+  var spawnInterval=setInterval(spawnCoin,400);
+  var timerInterval=setInterval(function(){
+    timeLeft--;timerEl.textContent=timeLeft;
+    if(timeLeft<=0){
+      clearInterval(spawnInterval);clearInterval(timerInterval);
+      Array.from(area.querySelectorAll('.minigame-coin')).forEach(function(c){c.remove();});
+      minigameLastPlayed=Date.now();
+      coins+=score;updateCoinsUI();save();
+      showAnim('+'+score+' 🪙','#ffc107');
+      toast('Собрал '+score+' 🪙!');
+      setTimeout(function(){$('minigameOverlay').classList.remove('show');},1500);
+    }
+  },1000);
+  for(var i=0;i<3;i++)setTimeout(spawnCoin,100+i*200);
+}
+
+function requestNotifications(){
+  if(!('Notification' in window)){toast('Не поддерживается');return;}
+  Notification.requestPermission().then(function(p){
+    if(p==='granted'){
+      $('notifyStatus').textContent='✅ Включены';
+      new Notification('Угадай число',{body:'Уведомления включены!'});
+      setTimeout(function(){
+        if(Notification.permission==='granted'){
+          new Notification('Загляни в игру',{body:'Забери ежедневные задания!'});
+        }
+      },60000*30);
+    }else{
+      $('notifyStatus').textContent='❌ Отклонены';
+    }
+  });
+}
+
+document.addEventListener('DOMContentLoaded',function(){
+  load();applySkin();applyAvatar();
+  ensureQuests();
+  newGame();
+
+  $('guessBtn').addEventListener('click',checkGuess);
+  $('resetBtn').addEventListener('click',function(){beep(500,.05);newGame();});
+  $('guessInput').addEventListener('keydown',function(e){if(e.key==='Enter')checkGuess();});
+
+  $('adminToggle').addEventListener('click',function(){
+    $('loginError').textContent='';$('passInput').value='';
+    $('loginOverlay').classList.add('show');$('passInput').focus();
+  });
+  $('loginBtn').addEventListener('click',function(){
+    if($('passInput').value===ADMIN_PASSWORD){
+      $('loginOverlay').classList.remove('show');updateAdminInfo();
+      $('adminOverlay').classList.add('show');
+    }else{$('loginError').textContent='Неверно';$('passInput').value='';}
+  });
+  $('passInput').addEventListener('keydown',function(e){if(e.key==='Enter')$('loginBtn').click();});
+  $('loginCancel').addEventListener('click',function(){$('loginOverlay').classList.remove('show');});
+  $('adminClose').addEventListener('click',function(){$('adminOverlay').classList.remove('show');});
+  $('cheatToggle').addEventListener('change',function(e){cheatMode=e.target.checked;});
+  $('showSecretToggle').addEventListener('change',function(e){$('secretOnScreen').style.display=e.target.checked?'block':'none';});
+  $('infiniteToggle').addEventListener('change',function(e){infiniteMode=e.target.checked;});
+  $('addCoinsBtn').addEventListener('click',function(){var v=Number($('coinsAmountInput').value);if(!v||v<1)return;
+    coins+=v;updateCoinsUI();save();$('coinsAmountInput').value='';$('adminOk').textContent='+'+v;});
+  $('takeCoinsBtn').addEventListener('click',function(){var v=Number($('coinsAmountInput').value);if(!v||v<1)return;
+    coins-=v;if(coins<0)coins=0;updateCoinsUI();save();$('coinsAmountInput').value='';$('adminOk').textContent='−'+v;});
+  $('resetCoinsBtn').addEventListener('click',function(){coins=0;updateCoinsUI();save();$('adminOk').textContent='0';});
+  $('applySettings').addEventListener('click',function(){
+    var l=Number($('limitInput').value),r=Number($('rangeInput').value);
+    if(l<1||r<2){$('adminMsg').textContent='Лимит≥1, макс≥2';return;}
+    MAX_ATTEMPTS=l;MAX_RANGE=r;$('limitInput').value='';$('rangeInput').value='';
+    save();newGame();$('adminOk').textContent='OK';});
+  $('newGameAdmin').addEventListener('click',function(){newGame();$('cheatToggle').checked=false;cheatMode=false;$('adminOk').textContent='Новая';});
+  $('changePassBtn').addEventListener('click',function(){var n=$('newPassInput').value.trim();if(!n)return;
+    ADMIN_PASSWORD=n;$('newPassInput').value='';$('adminOk').textContent='Пароль сменён';updateAdminInfo();});
+  $('resetStatsBtn').addEventListener('click',function(){
+    if(!confirm('Сбросить ВСЁ?'))return;
+    localStorage.removeItem('guessV5');location.reload();
+  });
+
+  $('shopBtn').addEventListener('click',function(){renderShop();$('shopOverlay').classList.add('show');});
+  $('shopClose').addEventListener('click',function(){$('shopOverlay').classList.remove('show');});
+  document.querySelectorAll('.shop-tab').forEach(function(t){
+    t.addEventListener('click',function(){
+      document.querySelectorAll('.shop-tab').forEach(function(x){x.classList.remove('active');});
+      t.classList.add('active');currentTab=t.dataset.tab;renderShop();
+    });
+  });
+
+  $('questsBtn').addEventListener('click',function(){renderQuests();$('questsOverlay').classList.add('show');});
+  $('questsClose').addEventListener('click',function(){$('questsOverlay').classList.remove('show');});
+
+  $('achieveBtn').addEventListener('click',function(){renderAchievements();$('achieveOverlay').classList.add('show');});
+  $('achieveClose').addEventListener('click',function(){$('achieveOverlay').classList.remove('show');});
+
+  $('casesBtn').addEventListener('click',function(){$('caseResult').style.display='none';updateCoinsUI();$('casesOverlay').classList.add('show');});
+  $('casesClose').addEventListener('click',function(){$('casesOverlay').classList.remove('show');});
+  $('caseCard').addEventListener('click',openCase);
+
+  $('settingsBtn').addEventListener('click',function(){renderSettings();$('settingsOverlay').classList.add('show');});
+  $('settingsClose').addEventListener('click',function(){$('settingsOverlay').classList.remove('show');});
+  $('soundToggle').addEventListener('change',function(e){soundOn=e.target.checked;save();});
+  document.querySelectorAll('[data-diff]').forEach(function(b){
+    b.addEventListener('click',function(){applyDifficulty(b.dataset.diff);});
+  });
+  $('notifyBtn').addEventListener('click',requestNotifications);
+  $('prestigeBtn').addEventListener('click',doPrestige);
+  $('minigameBtn').addEventListener('click',startMinigame);
+  $('addFriendBtn').addEventListener('click',addFriend);
+  $('friendNameInput').addEventListener('keydown',function(e){if(e.key==='Enter')addFriend();});
+
+  $('minigameClose').addEventListener('click',function(){$('minigameOverlay').classList.remove('show');});
+
+  $('duelGuessBtn').addEventListener('click',yourMove);
+  $('duelInput').addEventListener('keydown',function(e){if(e.key==='Enter')yourMove();});
+  $('duelClose').addEventListener('click',function(){
+    if(duel&&!duel.finished){
+      if(!confirm('Выйти? Ставка сгорит.'))return;
+      duel.finished=true;coins-=DUEL_BET;if(coins<0)coins=0;
+      updateCoinsUI();save();showAnim('−'+DUEL_BET+' 🪙','#f44336');
+    }
+    $('duelOverlay').classList.remove('show');duel=null;
+  });
+
+  updateXpUI();updateCoinsUI();updateAdminInfo();
+});
+</script>
+</body>
+  </html>
