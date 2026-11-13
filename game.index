@@ -1,0 +1,1719 @@
+<!DOCTYPE html>
+<html lang="ru">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>🪙 Кликер v2.0</title>
+<style>
+:root {
+  --gold: #ffd86b;
+  --purple: #7c4dff;
+  --purple-d: #4a2bd6;
+  --green: #2ecc71;
+  --red: #ff4d6d;
+  --bg-1: #2a1f5e;
+  --bg-2: #12101f;
+  --bg-3: #08070d;
+  --card-bg: rgba(255,255,255,.045);
+  --card-border: rgba(255,255,255,.08);
+  --text-1: #e9e9f5;
+  --text-2: #8f8ba8;
+  --text-3: #b8b4cc;
+}
+
+* { margin: 0; padding: 0; box-sizing: border-box; -webkit-tap-highlight-color: transparent; }
+
+body {
+  font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+  background: radial-gradient(circle at 50% -20%, var(--bg-1) 0%, var(--bg-2) 45%, var(--bg-3) 100%);
+  color: var(--text-1);
+  min-height: 100vh;
+  user-select: none;
+  overflow-x: hidden;
+}
+
+/* ========= CANVAS PARTICLES ========= */
+#particles {
+  position: fixed;
+  inset: 0;
+  pointer-events: none;
+  z-index: 400;
+}
+
+/* ========= NOTIFICATIONS ========= */
+#notifications {
+  position: fixed;
+  top: 20px;
+  right: 20px;
+  z-index: 2000;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+  pointer-events: none;
+  max-width: 320px;
+}
+.notification {
+  background: linear-gradient(135deg, rgba(30,25,50,.98), rgba(20,17,35,.98));
+  border: 1px solid rgba(140,110,255,.4);
+  border-radius: 12px;
+  padding: 12px 18px;
+  color: #fff;
+  font-size: 14px;
+  font-weight: 600;
+  box-shadow: 0 8px 24px rgba(0,0,0,.6);
+  animation: notifIn .35s cubic-bezier(.2,.7,.4,1);
+  pointer-events: auto;
+}
+.notification.success { border-color: var(--green); }
+.notification.achievement {
+  background: linear-gradient(135deg, rgba(255,215,0,.15), rgba(255,140,0,.15));
+  border-color: var(--gold);
+  color: var(--gold);
+}
+.notification.golden { border-color: #ffd700; background: linear-gradient(135deg, rgba(255,215,0,.2), rgba(255,140,0,.1)); color: #ffe066; }
+.notification.out { animation: notifOut .3s forwards; }
+
+@keyframes notifIn { from { opacity: 0; transform: translateX(50px); } to { opacity: 1; transform: none; } }
+@keyframes notifOut { to { opacity: 0; transform: translateX(50px); } }
+
+/* ========= GOLDEN COIN ========= */
+.golden-coin {
+  position: fixed;
+  width: 76px;
+  height: 76px;
+  border-radius: 50%;
+  background: radial-gradient(circle at 30% 30%, #fff5b0, #ffd700 50%, #ff8c00 100%);
+  box-shadow: 0 0 40px rgba(255,215,0,.9), 0 0 80px rgba(255,165,0,.5);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  font-size: 38px;
+  cursor: pointer;
+  z-index: 500;
+  animation: goldenPulse 1s infinite;
+  transition: transform .1s;
+  border: 3px solid #fffbe0;
+}
+.golden-coin:hover { transform: scale(1.15); }
+.golden-coin.hidden { display: none; }
+.golden-coin::before {
+  content: '';
+  position: absolute;
+  inset: -12px;
+  border-radius: 50%;
+  border: 2px solid rgba(255,215,0,.5);
+  animation: goldenRing 1.5s infinite;
+}
+@keyframes goldenPulse {
+  0%, 100% { transform: scale(1); }
+  50% { transform: scale(1.1); }
+}
+@keyframes goldenRing {
+  0% { transform: scale(1); opacity: 1; }
+  100% { transform: scale(1.6); opacity: 0; }
+}
+
+/* ========= LAYOUT ========= */
+.app {
+  max-width: 1180px;
+  margin: 0 auto;
+  padding: 24px 18px 40px;
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 28px;
+  align-items: start;
+  position: relative;
+  z-index: 10;
+}
+
+/* ========= LEFT PANEL ========= */
+.left-panel {
+  text-align: center;
+  position: sticky;
+  top: 20px;
+}
+
+h1#logo {
+  font-size: 26px;
+  letter-spacing: 3px;
+  font-weight: 800;
+  background: linear-gradient(90deg, var(--gold), #ff9d00, var(--gold));
+  -webkit-background-clip: text;
+  background-clip: text;
+  color: transparent;
+  cursor: pointer;
+  display: inline-block;
+  margin-bottom: 8px;
+}
+
+.prestige-info {
+  display: inline-flex;
+  gap: 10px;
+  align-items: center;
+  background: rgba(124,77,255,.12);
+  border: 1px solid rgba(124,77,255,.3);
+  border-radius: 10px;
+  padding: 5px 12px;
+  font-size: 12px;
+  font-weight: 700;
+  color: #c4b5fd;
+  margin-bottom: 12px;
+}
+.prestige-info b { color: #ffd86b; }
+
+.coin-count {
+  font-size: 44px;
+  font-weight: 800;
+  color: #fff;
+  text-shadow: 0 0 24px rgba(255,200,60,.55);
+  line-height: 1.1;
+  transition: transform .12s;
+}
+.coin-count.bump {
+  transform: scale(1.04);
+}
+
+.coin-label {
+  font-size: 12px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-2);
+  margin-bottom: 12px;
+}
+
+/* Click Button */
+.click-btn {
+  width: 210px;
+  height: 210px;
+  border-radius: 50%;
+  border: none;
+  cursor: pointer;
+  background: radial-gradient(circle at 34% 28%, #fff2b0, #ffbe2e 42%, #d17b00 100%);
+  box-shadow: 0 0 45px rgba(255,183,0,.45),
+              inset 0 -10px 24px rgba(120,60,0,.35),
+              inset 0 8px 18px rgba(255,255,255,.5);
+  font-size: 88px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 4px auto 16px;
+  transition: transform .07s ease, box-shadow .25s ease;
+  line-height: 1;
+  position: relative;
+}
+.click-btn:active {
+  transform: scale(.93);
+  box-shadow: 0 0 80px rgba(255,200,0,.95), inset 0 -4px 20px rgba(120,60,0,.4);
+}
+
+/* Combo bar */
+.combo-bar {
+  width: 210px;
+  height: 8px;
+  background: rgba(255,255,255,.07);
+  border-radius: 4px;
+  margin: 0 auto 12px;
+  overflow: hidden;
+  position: relative;
+}
+.combo-fill {
+  height: 100%;
+  background: linear-gradient(90deg, #ff6b35, #ffd700, #ff6b35);
+  background-size: 200% 100%;
+  width: 0%;
+  transition: width .15s ease;
+  animation: comboShift 2s linear infinite;
+}
+@keyframes comboShift { to { background-position: 200% 0; } }
+
+.combo-indicator {
+  display: inline-block;
+  font-weight: 800;
+  font-size: 15px;
+  color: #ffd700;
+  margin-bottom: 12px;
+  min-height: 20px;
+  text-shadow: 0 0 10px rgba(255,180,0,.7);
+}
+.combo-indicator.active {
+  animation: comboPop .3s ease;
+}
+@keyframes comboPop {
+  0% { transform: scale(1); }
+  50% { transform: scale(1.2); }
+  100% { transform: scale(1); }
+}
+
+.hud { display: flex; gap: 8px; justify-content: center; flex-wrap: wrap; }
+.hud-item {
+  background: rgba(255,255,255,.055);
+  border: 1px solid rgba(255,255,255,.09);
+  border-radius: 12px;
+  padding: 8px 14px;
+  font-size: 14px;
+  font-weight: 700;
+  color: var(--gold);
+  min-width: 100px;
+}
+.hud-label {
+  display: block;
+  font-size: 10px;
+  letter-spacing: 1px;
+  text-transform: uppercase;
+  color: var(--text-2);
+  font-weight: 600;
+  margin-bottom: 2px;
+}
+
+/* Screen shake */
+@keyframes shake {
+  0%,100% { transform: translate(0,0); }
+  20% { transform: translate(-4px, 2px); }
+  40% { transform: translate(4px, -2px); }
+  60% { transform: translate(-3px, 3px); }
+  80% { transform: translate(3px, -3px); }
+}
+.shake { animation: shake .3s ease; }
+
+/* ========= RIGHT PANEL ========= */
+.tabs {
+  display: flex;
+  gap: 6px;
+  margin-bottom: 14px;
+  background: rgba(255,255,255,.04);
+  padding: 6px;
+  border-radius: 14px;
+  border: 1px solid rgba(255,255,255,.07);
+}
+.tab {
+  flex: 1;
+  padding: 10px 6px;
+  border: none;
+  border-radius: 10px;
+  background: transparent;
+  color: #9d99b8;
+  font-size: 13px;
+  font-weight: 700;
+  cursor: pointer;
+  transition: .18s;
+  font-family: inherit;
+}
+.tab:hover { color: #d6d3e8; }
+.tab.active {
+  background: linear-gradient(135deg, var(--purple), var(--purple-d));
+  color: #fff;
+  box-shadow: 0 6px 20px rgba(110,70,255,.38);
+}
+
+.tab-content { display: none; animation: fade .25s ease; }
+.tab-content.active { display: block; }
+@keyframes fade { from { opacity: 0; transform: translateY(6px); } to { opacity: 1; transform: none; } }
+
+/* ========= SHOP ========= */
+.tier-title {
+  font-size: 11px;
+  letter-spacing: 2px;
+  text-transform: uppercase;
+  color: var(--text-2);
+  font-weight: 700;
+  margin: 16px 0 8px;
+  padding-left: 4px;
+  display: flex;
+  align-items: center;
+  gap: 8px;
+}
+.tier-title::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: linear-gradient(90deg, rgba(255,255,255,.12), transparent);
+}
+.tier-title:first-child { margin-top: 0; }
+
+.shop { display: flex; flex-direction: column; gap: 8px; }
+
+.card {
+  display: flex;
+  align-items: center;
+  gap: 12px;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 14px;
+  padding: 12px 14px;
+  transition: .2s;
+}
+.card:hover {
+  background: rgba(255,255,255,.075);
+  border-color: rgba(140,110,255,.45);
+  transform: translateX(3px);
+}
+.card.maxed { opacity: .55; }
+.card.new { animation: cardNew 1s ease; }
+@keyframes cardNew {
+  0%, 100% { background: var(--card-bg); }
+  50% { background: rgba(46,204,113,.2); }
+}
+
+.card-icon {
+  font-size: 26px;
+  width: 44px;
+  height: 44px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: rgba(255,255,255,.06);
+  border-radius: 11px;
+  flex-shrink: 0;
+}
+.card-info { flex: 1; min-width: 0; }
+.card-name { font-weight: 700; font-size: 14px; margin-bottom: 3px; }
+.lvl {
+  font-size: 10px;
+  font-weight: 700;
+  color: #a78bfa;
+  background: rgba(124,77,255,.18);
+  padding: 1px 6px;
+  border-radius: 20px;
+  margin-left: 5px;
+  vertical-align: middle;
+}
+.card-desc { font-size: 11.5px; color: var(--text-2); line-height: 1.35; }
+
+.buy-btn {
+  flex-shrink: 0;
+  padding: 9px 12px;
+  border: none;
+  border-radius: 10px;
+  background: linear-gradient(135deg, var(--green), #17a558);
+  color: #fff;
+  font-weight: 800;
+  font-size: 12px;
+  cursor: pointer;
+  transition: .18s;
+  font-family: inherit;
+  min-width: 92px;
+  white-space: nowrap;
+}
+.buy-btn:hover:not(:disabled) { filter: brightness(1.15); transform: translateY(-1px); }
+.buy-btn:disabled {
+  background: rgba(255,255,255,.07);
+  color: #5e5b74;
+  cursor: not-allowed;
+}
+
+/* ========= ACHIEVEMENTS ========= */
+.achievements-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 8px;
+}
+.ach {
+  display: flex;
+  gap: 10px;
+  align-items: center;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 10px 12px;
+  transition: .2s;
+}
+.ach:hover { border-color: rgba(140,110,255,.35); }
+.ach.locked { opacity: .45; }
+.ach.unlocked {
+  background: linear-gradient(135deg, rgba(255,215,0,.1), rgba(255,140,0,.05));
+  border-color: rgba(255,215,0,.35);
+}
+.ach-icon { font-size: 22px; flex-shrink: 0; }
+.ach-info { min-width: 0; }
+.ach-name { font-weight: 700; font-size: 12px; margin-bottom: 2px; }
+.ach-desc { font-size: 10.5px; color: var(--text-2); }
+
+/* ========= STATS ========= */
+.stat-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 12px 16px;
+  margin-bottom: 8px;
+  font-size: 13px;
+  color: var(--text-3);
+}
+.stat-row b { color: var(--gold); font-size: 15px; }
+
+/* ========= SETTINGS ========= */
+.setting-row {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  background: var(--card-bg);
+  border: 1px solid var(--card-border);
+  border-radius: 12px;
+  padding: 14px 16px;
+  margin-bottom: 8px;
+  font-size: 14px;
+}
+.toggle {
+  width: 50px; height: 28px;
+  background: rgba(255,255,255,.1);
+  border-radius: 14px;
+  position: relative;
+  cursor: pointer;
+  transition: .2s;
+  border: none;
+  padding: 0;
+}
+.toggle::after {
+  content: '';
+  position: absolute;
+  top: 3px; left: 3px;
+  width: 22px; height: 22px;
+  background: #fff;
+  border-radius: 50%;
+  transition: .25s;
+}
+.toggle.on { background: var(--green); }
+.toggle.on::after { left: 25px; }
+
+.action-btn {
+  width: 100%;
+  padding: 12px;
+  border: none;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--purple), var(--purple-d));
+  color: #fff;
+  font-weight: 700;
+  font-size: 13px;
+  cursor: pointer;
+  transition: .18s;
+  font-family: inherit;
+  margin-top: 8px;
+}
+.action-btn:hover { filter: brightness(1.15); }
+.action-btn.danger { background: linear-gradient(135deg, var(--red), #c9184a); }
+.action-btn.gold { background: linear-gradient(135deg, #ffb800, #e67e00); color: #1a1030; }
+
+/* ========= PRESTIGE MODAL ========= */
+.modal {
+  position: fixed;
+  inset: 0;
+  background: rgba(5,4,12,.85);
+  backdrop-filter: blur(8px);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  padding: 18px;
+}
+.modal.hidden { display: none; }
+
+.modal-box {
+  background: linear-gradient(160deg, #1b1730, #12101f);
+  border: 1px solid rgba(140,110,255,.35);
+  border-radius: 20px;
+  padding: 22px;
+  width: 100%;
+  max-width: 440px;
+  max-height: 88vh;
+  overflow-y: auto;
+  box-shadow: 0 24px 70px rgba(0,0,0,.75), 0 0 60px rgba(110,70,255,.18);
+  animation: pop .22s ease;
+}
+@keyframes pop { from { opacity: 0; transform: scale(.94); } to { opacity: 1; transform: none; } }
+
+.modal-head {
+  display: flex;
+  justify-content: space-between;
+  align-items: center;
+  margin-bottom: 18px;
+}
+.modal-head h2 { font-size: 19px; color: #c4b5fd; }
+
+.close-btn {
+  background: rgba(255,255,255,.07);
+  border: none;
+  color: var(--text-3);
+  width: 32px; height: 32px;
+  border-radius: 9px;
+  cursor: pointer;
+  font-size: 15px;
+  transition: .18s;
+}
+.close-btn:hover { background: rgba(255,80,80,.25); color: #fff; }
+
+.admin-grid {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 9px;
+  margin-bottom: 16px;
+}
+.admin-btn {
+  padding: 11px;
+  border: none;
+  border-radius: 11px;
+  background: linear-gradient(135deg, var(--purple), var(--purple-d));
+  color: #fff;
+  font-weight: 700;
+  font-size: 12px;
+  cursor: pointer;
+  transition: .18s;
+  font-family: inherit;
+}
+.admin-btn:hover { filter: brightness(1.18); }
+.admin-btn.danger { background: linear-gradient(135deg, var(--red), #c9184a); grid-column: span 2; }
+.admin-btn.gold { background: linear-gradient(135deg, #ffb800, #e67e00); color: #1a1030; }
+
+.admin-field { margin-bottom: 12px; }
+.admin-field label {
+  display: block;
+  font-size: 11px;
+  color: var(--text-2);
+  margin-bottom: 5px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: .5px;
+}
+.admin-field .row { display: flex; gap: 8px; }
+.admin-field input {
+  flex: 1;
+  padding: 9px 12px;
+  border-radius: 10px;
+  border: 1px solid rgba(255,255,255,.12);
+  background: rgba(0,0,0,.35);
+  color: #fff;
+  font-size: 13px;
+  font-family: inherit;
+  outline: none;
+  min-width: 0;
+}
+.admin-field input:focus { border-color: var(--purple); }
+.admin-field .admin-btn { flex-shrink: 0; padding: 9px 16px; }
+
+/* ========= FLOATING TEXT ========= */
+.float {
+  position: fixed;
+  pointer-events: none;
+  font-weight: 900;
+  font-size: 22px;
+  color: var(--gold);
+  text-shadow: 0 0 12px rgba(255,180,0,.9), 0 2px 4px rgba(0,0,0,.6);
+  z-index: 999;
+  animation: floatUp .9s cubic-bezier(.2,.7,.4,1) forwards;
+  transform: translate(-50%, -50%);
+}
+.float.crit { color: #ff5fa2; font-size: 30px; text-shadow: 0 0 18px rgba(255,60,150,.95); }
+@keyframes floatUp {
+  0%   { opacity: 1; transform: translate(-50%, -50%) scale(.7); }
+  25%  { opacity: 1; transform: translate(-50%, -85%) scale(1.15); }
+  100% { opacity: 0; transform: translate(-50%, -190%) scale(1); }
+}
+
+/* ========= RESPONSIVE ========= */
+@media (max-width: 820px) {
+  .app { grid-template-columns: 1fr; gap: 22px; padding: 16px 12px 34px; }
+  .left-panel { position: static; }
+  .coin-count { font-size: 36px; }
+  .click-btn { width: 175px; height: 175px; font-size: 72px; }
+  .combo-bar { width: 175px; }
+  .achievements-grid { grid-template-columns: 1fr; }
+  .admin-grid { grid-template-columns: 1fr; }
+  .admin-btn.danger { grid-column: auto; }
+  #notifications { top: 10px; right: 10px; left: 10px; max-width: none; }
+}
+</style>
+</head>
+<body>
+
+<canvas id="particles"></canvas>
+<div id="notifications"></div>
+<div id="goldenCoin" class="golden-coin hidden">🪙</div>
+
+<div class="app">
+  <!-- LEFT -->
+  <div class="left-panel">
+    <h1 id="logo">🪙 КЛИКЕР v2.0</h1>
+    <div class="prestige-info">
+      <span>⭐ Престиж:</span><b id="prestigePoints">0</b>
+      <span>·</span><b id="prestigeMult">×1.00</b>
+    </div>
+    <div class="coin-count" id="coinDisplay"><span id="coins">0</span></div>
+    <div class="coin-label">монет</div>
+
+    <button id="clickBtn" class="click-btn">🪙</button>
+
+    <div class="combo-bar"><div class="combo-fill" id="comboFill"></div></div>
+    <div class="combo-indicator" id="comboIndicator"></div>
+
+    <div class="hud">
+      <div class="hud-item"><span class="hud-label">За клик</span><span id="perClick">1</span></div>
+      <div class="hud-item"><span class="hud-label">В секунду</span><span id="perSec">0</span></div>
+      <div class="hud-item"><span class="hud-label">Крит</span><span id="critChance">0%</span></div>
+    </div>
+  </div>
+
+  <!-- RIGHT -->
+  <div class="right-panel">
+    <div class="tabs">
+      <button class="tab active" data-tab="shop">🛒 Магазин</button>
+      <button class="tab" data-tab="achievements">🏆 Достижения</button>
+      <button class="tab" data-tab="stats">📊 Статистика</button>
+      <button class="tab" data-tab="settings">⚙️ Настройки</button>
+    </div>
+
+    <div id="tab-shop" class="tab-content active">
+      <div id="shop" class="shop"></div>
+    </div>
+
+    <div id="tab-achievements" class="tab-content">
+      <div id="achievements" class="achievements-grid"></div>
+    </div>
+
+    <div id="tab-stats" class="tab-content">
+      <div id="stats"></div>
+    </div>
+
+    <div id="tab-settings" class="tab-content">
+      <div class="setting-row">
+        <span>🔊 Звуки</span>
+        <button class="toggle on" id="soundToggle"></button>
+      </div>
+      <div class="setting-row">
+        <span>✨ Частицы</span>
+        <button class="toggle on" id="particlesToggle"></button>
+      </div>
+      <div class="setting-row">
+        <span>🎯 Режим престижа</span>
+        <button class="action-btn gold" id="prestigeBtn" style="width:auto;padding:8px 14px;margin:0;">Открыть</button>
+      </div>
+      <button class="action-btn" id="exportBtn">📤 Экспорт сохранения</button>
+      <button class="action-btn" id="importBtn">📥 Импорт сохранения</button>
+      <button class="action-btn danger" id="resetBtn">🔄 Полный сброс</button>
+    </div>
+  </div>
+</div>
+
+<!-- PRESTIGE MODAL -->
+<div id="prestigeModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>⭐ Перерождение</h2>
+      <button class="close-btn" data-close="prestigeModal">✕</button>
+    </div>
+    <p style="font-size:13px;color:#b8b4cc;line-height:1.6;margin-bottom:16px;">
+      Перерождение сбрасывает <b>монеты и все улучшения</b>, но даёт постоянные <b>очки престижа</b>.
+      Каждое очко = <b>+20%</b> ко всему доходу навсегда.
+    </p>
+    <div style="background:rgba(255,215,0,.08);border:1px solid rgba(255,215,0,.3);border-radius:12px;padding:14px;margin-bottom:16px;text-align:center;">
+      <div style="font-size:11px;color:#8f8ba8;letter-spacing:1px;text-transform:uppercase;margin-bottom:6px;">Вы получите</div>
+      <div style="font-size:32px;font-weight:800;color:#ffd86b;" id="prestigeGain">+0</div>
+      <div style="font-size:11px;color:#8f8ba8;margin-top:4px;">очков престижа</div>
+    </div>
+    <button class="action-btn gold" id="prestigeConfirm">⭐ Переродиться</button>
+  </div>
+</div>
+
+<!-- ADMIN MODAL -->
+<div id="adminModal" class="modal hidden">
+  <div class="modal-box">
+    <div class="modal-head">
+      <h2>⚙️ Админ-панель</h2>
+      <button class="close-btn" data-close="adminModal">✕</button>
+    </div>
+
+    <div class="admin-grid">
+      <button class="admin-btn" data-admin="add1k">+1 000</button>
+      <button class="admin-btn" data-admin="add1m">+1M</button>
+      <button class="admin-btn" data-admin="add1b">+1B</button>
+      <button class="admin-btn" data-admin="add1t">+1T</button>
+      <button class="admin-btn gold" data-admin="maxAll">🚀 Макс. всё</button>
+      <button class="admin-btn" data-admin="unlockAll">🏆 Все ачивки</button>
+      <button class="admin-btn" data-admin="addPrestige">⭐ +10 престиж</button>
+      <button class="admin-btn gold" data-admin="spawnGolden">🪙 Золотая</button>
+      <button class="admin-btn danger" data-admin="reset">🔄 Полный сброс</button>
+    </div>
+
+    <div class="admin-field">
+      <label>Установить монеты</label>
+      <div class="row">
+        <input id="admCoins" type="number" placeholder="0">
+        <button class="admin-btn" data-admin="setCoins">OK</button>
+      </div>
+    </div>
+
+    <div class="admin-field">
+      <label>Уровень «Сила клика»</label>
+      <div class="row">
+        <input id="admClick" type="number" placeholder="0">
+        <button class="admin-btn" data-admin="setClick">OK</button>
+      </div>
+    </div>
+
+    <div class="admin-field">
+      <label>Уровень «Автокликер»</label>
+      <div class="row">
+        <input id="admAuto" type="number" placeholder="0">
+        <button class="admin-btn" data-admin="setAuto">OK</button>
+      </div>
+    </div>
+
+    <div class="admin-field">
+      <label>Уровень «Множитель»</label>
+      <div class="row">
+        <input id="admMulti" type="number" placeholder="0">
+        <button class="admin-btn" data-admin="setMulti">OK</button>
+      </div>
+    </div>
+
+    <div class="admin-field">
+      <label>Уровень «Крит»</label>
+      <div class="row">
+        <input id="admCrit" type="number" placeholder="0">
+        <button class="admin-btn" data-admin="setCrit">OK</button>
+      </div>
+    </div>
+
+    <div class="admin-field">
+      <label>Очки престижа</label>
+      <div class="row">
+        <input id="admPrestige" type="number" placeholder="0">
+        <button class="admin-btn" data-admin="setPrestige">OK</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<script>
+(function () {
+  'use strict';
+
+  /* ============================================================
+     CONSTANTS
+     ============================================================ */
+  const SAVE_KEY = 'clicker_save_v2';
+  const ADMIN_PASSWORD = '776';
+
+  const UPGRADES = [
+    // Tier 1
+    { id: 'click', icon: '💪', name: 'Сила клика', base: 15, growth: 1.15, tier: 1,
+      desc: l => `+1 к силе клика` },
+    { id: 'auto', icon: '🤖', name: 'Автокликер', base: 40, growth: 1.18, tier: 1,
+      desc: l => `+1 монета/сек` },
+    { id: 'multi', icon: '✨', name: 'Множитель', base: 1000, growth: 3, max: 15, tier: 1,
+      desc: l => `×2 ко всему доходу` },
+
+    // Tier 2
+    { id: 'crit', icon: '🍀', name: 'Критический удар', base: 300, growth: 1.7, max: 10, tier: 2,
+      desc: l => `+5% шанс крита` },
+    { id: 'megaClick', icon: '👆', name: 'Мега клик', base: 500, growth: 1.3, tier: 2,
+      desc: l => `+10 к силе клика` },
+    { id: 'combo', icon: '🔥', name: 'Комбо-мастер', base: 2000, growth: 2.2, max: 20, tier: 2,
+      desc: l => `+5 к макс. комбо` },
+
+    // Tier 3
+    { id: 'factory', icon: '🏭', name: 'Фабрика', base: 5000, growth: 1.22, tier: 3,
+      desc: l => `+15 монет/сек` },
+    { id: 'luck', icon: '🌈', name: 'Удача', base: 8000, growth: 2.5, max: 20, tier: 3,
+      desc: l => `+3% крит, +2x множитель` },
+    { id: 'goldenMagnet', icon: '🧲', name: 'Магнит удачи', base: 15000, growth: 2, max: 10, tier: 3,
+      desc: l => `Золотые монеты чаще` },
+
+    // Tier 4
+    { id: 'hyperClick', icon: '⚡', name: 'Гипер клик', base: 50000, growth: 1.4, tier: 4,
+      desc: l => `+500 к силе клика` },
+    { id: 'quantum', icon: '🌌', name: 'Квантовый ускоритель', base: 100000, growth: 1.3, tier: 4,
+      desc: l => `+500 монет/сек` },
+    { id: 'turbo', icon: '🚀', name: 'Турбо-режим', base: 200000, growth: 2.5, max: 20, tier: 4,
+      desc: l => `+25% ко всему доходу` },
+
+    // Tier 5
+    { id: 'bank', icon: '🏦', name: 'Банк', base: 500000, growth: 1.8, max: 20, tier: 5,
+      desc: l => `+10% к автодоходу` },
+    { id: 'singularity', icon: '🕳️', name: 'Сингулярность', base: 1e8, growth: 1.35, tier: 5,
+      desc: l => `+50 000 монет/сек` }
+  ];
+
+  const TIER_NAMES = {
+    1: '🟢 Базовые',
+    2: '🔵 Продвинутые',
+    3: '🟣 Промышленные',
+    4: '🟠 Космические',
+    5: '🔴 Божественные'
+  };
+
+  const ACHIEVEMENTS = [
+    { id: 'firstClick', icon: '🖱️', name: 'Первый клик', desc: 'Сделать 1 клик', check: s => s.clicks >= 1 },
+    { id: 'click100', icon: '👆', name: 'Кликер', desc: '100 кликов', check: s => s.clicks >= 100 },
+    { id: 'click10k', icon: '🖐️', name: 'Мастер клика', desc: '10 000 кликов', check: s => s.clicks >= 10000 },
+    { id: 'click1m', icon: '🏆', name: 'Легенда', desc: '1 000 000 кликов', check: s => s.clicks >= 1000000 },
+    { id: 'firstK', icon: '💰', name: 'Первая тысяча', desc: 'Заработать 1 000', check: s => s.totalEarned >= 1000 },
+    { id: 'million', icon: '💵', name: 'Миллионер', desc: 'Заработать 1M', check: s => s.totalEarned >= 1e6 },
+    { id: 'billion', icon: '💎', name: 'Миллиардер', desc: 'Заработать 1B', check: s => s.totalEarned >= 1e9 },
+    { id: 'trillion', icon: '👑', name: 'Триллионер', desc: 'Заработать 1T', check: s => s.totalEarned >= 1e12 },
+    { id: 'firstBuy', icon: '🛒', name: 'Шопоголик', desc: 'Первая покупка', check: s => totalLevels(s) >= 1 },
+    { id: 'collector', icon: '🛍️', name: 'Коллекционер', desc: '10 покупок', check: s => totalLevels(s) >= 10 },
+    { id: 'magnate', icon: '🏪', name: 'Магнат', desc: '50 покупок', check: s => totalLevels(s) >= 50 },
+    { id: 'strong', icon: '🦾', name: 'Силач', desc: 'Сила клика 10 ур.', check: s => s.levels.click >= 10 },
+    { id: 'titan', icon: '💪', name: 'Титан', desc: 'Сила клика 50 ур.', check: s => s.levels.click >= 50 },
+    { id: 'robot', icon: '🤖', name: 'Робот', desc: 'Автокликер 10 ур.', check: s => s.levels.auto >= 10 },
+    { id: 'industry', icon: '🏭', name: 'Индустриалист', desc: 'Фабрика 10 ур.', check: s => s.levels.factory >= 10 },
+    { id: 'fast', icon: '⚡', name: 'Быстрый', desc: '100/сек', check: s => s.records.perSec >= 100 },
+    { id: 'cosmic', icon: '🚀', name: 'Космический', desc: '10 000/сек', check: s => s.records.perSec >= 10000 },
+    { id: 'lucky', icon: '🍀', name: 'Счастливчик', desc: 'Крит 5 ур.', check: s => s.levels.crit >= 5 },
+    { id: 'maxLuck', icon: '🌈', name: 'Максимальная удача', desc: 'Удача 10 ур.', check: s => s.levels.luck >= 10 },
+    { id: 'combo10', icon: '🔥', name: 'Комбо x10', desc: 'Достичь комбо x10', check: s => s.records.maxCombo >= 10 },
+    { id: 'combo50', icon: '🌟', name: 'Комбо x50', desc: 'Достичь комбо x50', check: s => s.records.maxCombo >= 50 },
+    { id: 'golden', icon: '⭐', name: 'Золотая монета', desc: 'Поймать золотую', check: s => s.records.goldenCoins >= 1 },
+    { id: 'golden10', icon: '💫', name: 'Ловец удачи', desc: '10 золотых монет', check: s => s.records.goldenCoins >= 10 },
+    { id: 'prestige1', icon: '🔄', name: 'Перерождение', desc: 'Первый престиж', check: s => s.prestige.count >= 1 },
+    { id: 'prestige10', icon: '👑', name: 'Мастер перерождения', desc: '10 престижей', check: s => s.prestige.count >= 10 },
+    { id: 'hour', icon: '⏱️', name: 'Час игры', desc: '1 час игры', check: s => s.playtime >= 3600 },
+    { id: 'day', icon: '🎮', name: 'Преданный игрок', desc: '24 часа', check: s => s.playtime >= 86400 },
+    { id: 'multiMax', icon: '✨', name: 'Мультимастер', desc: 'Множитель 15 ур.', check: s => s.levels.multi >= 15 }
+  ];
+
+  const DEFAULT_STATE = {
+    coins: 0,
+    totalEarned: 0,
+    clicks: 0,
+    levels: { click:0, auto:0, multi:0, crit:0, megaClick:0, combo:0, factory:0, luck:0, goldenMagnet:0, hyperClick:0, quantum:0, turbo:0, bank:0, singularity:0 },
+    prestige: { points: 0, count: 0 },
+    achievements: [],
+    records: { coins:0, totalEarned:0, clicks:0, perSec:0, maxCombo:0, goldenCoins:0 },
+    playtime: 0,
+    combo: 0,
+    lastClick: 0,
+    settings: { sound: true, particles: true },
+    lastSave: Date.now()
+  };
+
+  /* ============================================================
+     STATE
+     ============================================================ */
+  let state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+  const $ = id => document.getElementById(id);
+
+  /* ============================================================
+     UTILS
+     ============================================================ */
+  function totalLevels(s) {
+    return Object.values(s.levels).reduce((a, b) => a + b, 0);
+  }
+
+  function fmt(n) {
+    if (!isFinite(n)) return '∞';
+    n = Math.floor(n);
+    if (n < 1000) return n.toString();
+    const units = ['', 'K', 'M', 'B', 'T', 'Qa', 'Qi', 'Sx', 'Sp', 'Oc', 'No', 'Dc', 'Ud', 'Dd', 'Td', 'Qad', 'Qid', 'Sxd', 'Spd', 'Ocd', 'Nod', 'Vg'];
+    let i = 0;
+    while (n >= 1000 && i < units.length - 1) { n /= 1000; i++; }
+    return n.toFixed(2).replace(/\.?0+$/, '') + units[i];
+  }
+
+  function fmtTime(sec) {
+    sec = Math.floor(sec);
+    const d = Math.floor(sec / 86400);
+    const h = Math.floor((sec % 86400) / 3600);
+    const m = Math.floor((sec % 3600) / 60);
+    const s = sec % 60;
+    if (d > 0) return `${d}д ${h}ч`;
+    if (h > 0) return `${h}ч ${m}м`;
+    if (m > 0) return `${m}м ${s}с`;
+    return `${s}с`;
+  }
+
+  /* ============================================================
+     CALCULATIONS
+     ============================================================ */
+  function getPrestigeMult() {
+    return 1 + state.prestige.points * 0.2;
+  }
+  function getAchievementMult() {
+    return 1 + state.achievements.length * 0.01;
+  }
+  function getTurboMult() {
+    return 1 + state.levels.turbo * 0.25;
+  }
+  function getBankMult() {
+    return 1 + state.levels.bank * 0.1;
+  }
+  function getMultiMult() {
+    return Math.pow(2, state.levels.multi);
+  }
+
+  function getClickPower() {
+    const base = 1 + state.levels.click + state.levels.megaClick * 10 + state.levels.hyperClick * 500;
+    const combo = 1 + Math.min(state.combo, getMaxCombo()) * 0.01;
+    return Math.floor(base * getMultiMult() * getTurboMult() * getPrestigeMult() * getAchievementMult() * combo);
+  }
+
+  function getAutoRate() {
+    const base = state.levels.auto + state.levels.factory * 15 + state.levels.quantum * 500 + state.levels.singularity * 50000;
+    return base * getMultiMult() * getTurboMult() * getPrestigeMult() * getAchievementMult() * getBankMult();
+  }
+
+  function getCritChance() {
+    return Math.min((state.levels.crit * 0.05) + (state.levels.luck * 0.03), 0.75);
+  }
+
+  function getCritMultiplier() {
+    return 10 + state.levels.luck * 2;
+  }
+
+  function getMaxCombo() {
+    return 10 + state.levels.combo * 5;
+  }
+
+  function getCost(u) {
+    return Math.floor(u.base * Math.pow(u.growth, state.levels[u.id]));
+  }
+
+  function getPrestigeGain() {
+    return Math.floor(Math.cbrt(state.totalEarned / 1e6));
+  }
+
+  /* ============================================================
+     SAVE / LOAD
+     ============================================================ */
+  function save() {
+    try {
+      state.lastSave = Date.now();
+      localStorage.setItem(SAVE_KEY, JSON.stringify(state));
+    } catch (e) {}
+  }
+
+  function load() {
+    try {
+      const raw = localStorage.getItem(SAVE_KEY);
+      if (!raw) return;
+      const d = JSON.parse(raw);
+      state = {
+        coins: Number(d.coins) || 0,
+        totalEarned: Number(d.totalEarned) || 0,
+        clicks: Number(d.clicks) || 0,
+        levels: Object.assign({}, DEFAULT_STATE.levels, d.levels || {}),
+        prestige: Object.assign({}, DEFAULT_STATE.prestige, d.prestige || {}),
+        achievements: Array.isArray(d.achievements) ? d.achievements : [],
+        records: Object.assign({}, DEFAULT_STATE.records, d.records || {}),
+        playtime: Number(d.playtime) || 0,
+        combo: 0,
+        lastClick: 0,
+        settings: Object.assign({}, DEFAULT_STATE.settings, d.settings || {}),
+        lastSave: Number(d.lastSave) || Date.now()
+      };
+    } catch (e) {
+      state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+    }
+  }
+
+  /* ============================================================
+     SOUND ENGINE
+     ============================================================ */
+  let audioCtx = null;
+  function beep(freq, dur, type) {
+    if (!state.settings.sound) return;
+    try {
+      if (!audioCtx) audioCtx = new (window.AudioContext || window.webkitAudioContext)();
+      const osc = audioCtx.createOscillator();
+      const gain = audioCtx.createGain();
+      osc.type = type || 'sine';
+      osc.frequency.value = freq;
+      gain.gain.setValueAtTime(0.08, audioCtx.currentTime);
+      gain.gain.exponentialRampToValueAtTime(0.001, audioCtx.currentTime + dur);
+      osc.connect(gain);
+      gain.connect(audioCtx.destination);
+      osc.start();
+      osc.stop(audioCtx.currentTime + dur);
+    } catch (e) {}
+  }
+  function sfxClick() { beep(800 + Math.random() * 200, 0.05, 'sine'); }
+  function sfxCrit() { beep(1200, 0.15, 'square'); }
+  function sfxBuy() { beep(600, 0.1, 'triangle'); }
+  function sfxAch() { beep(880, 0.15, 'sine'); setTimeout(() => beep(1320, 0.2, 'sine'), 100); }
+  function sfxGolden() { beep(660, 0.1); setTimeout(() => beep(990, 0.1), 80); setTimeout(() => beep(1320, 0.15), 160); }
+  function sfxPrestige() { beep(440, 0.2); setTimeout(() => beep(660, 0.2), 100); setTimeout(() => beep(880, 0.3), 200); }
+
+  /* ============================================================
+     PARTICLES
+     ============================================================ */
+  const canvas = $('particles');
+  const ctx = canvas.getContext('2d');
+  let particles = [];
+
+  function resizeCanvas() {
+    canvas.width = window.innerWidth;
+    canvas.height = window.innerHeight;
+  }
+  window.addEventListener('resize', resizeCanvas);
+  resizeCanvas();
+
+  function spawnParticles(x, y, count, colors) {
+    if (!state.settings.particles) return;
+    for (let i = 0; i < count; i++) {
+      particles.push({
+        x, y,
+        vx: (Math.random() - 0.5) * 10,
+        vy: (Math.random() - 0.5) * 10 - 3,
+        life: 1,
+        size: 3 + Math.random() * 4,
+        color: colors[Math.floor(Math.random() * colors.length)]
+      });
+    }
+  }
+
+  function renderParticles() {
+    ctx.clearRect(0, 0, canvas.width, canvas.height);
+    for (let i = particles.length - 1; i >= 0; i--) {
+      const p = particles[i];
+      p.x += p.vx;
+      p.y += p.vy;
+      p.vy += 0.3;
+      p.life -= 0.02;
+      if (p.life <= 0) { particles.splice(i, 1); continue; }
+      ctx.globalAlpha = p.life;
+      ctx.fillStyle = p.color;
+      ctx.beginPath();
+      ctx.arc(p.x, p.y, p.size * p.life, 0, Math.PI * 2);
+      ctx.fill();
+    }
+    ctx.globalAlpha = 1;
+    requestAnimationFrame(renderParticles);
+  }
+  requestAnimationFrame(renderParticles);
+
+  /* ============================================================
+     FLOATING TEXT
+     ============================================================ */
+  function spawnFloat(x, y, text, isCrit) {
+    const el = document.createElement('div');
+    el.className = 'float' + (isCrit ? ' crit' : '');
+    el.textContent = text;
+    el.style.left = x + 'px';
+    el.style.top = y + 'px';
+    document.body.appendChild(el);
+    setTimeout(() => el.remove(), 950);
+  }
+
+  /* ============================================================
+     NOTIFICATIONS
+     ============================================================ */
+  function notify(text, type, duration) {
+    const el = document.createElement('div');
+    el.className = 'notification ' + (type || 'info');
+    el.textContent = text;
+    $('notifications').appendChild(el);
+    setTimeout(() => {
+      el.classList.add('out');
+      setTimeout(() => el.remove(), 300);
+    }, duration || 3000);
+  }
+
+  /* ============================================================
+     SHOP UI
+     ============================================================ */
+  function buildShop() {
+    const shop = $('shop');
+    shop.innerHTML = '';
+    let lastTier = 0;
+    UPGRADES.forEach(u => {
+      if (u.tier !== lastTier) {
+        const title = document.createElement('div');
+        title.className = 'tier-title';
+        title.textContent = TIER_NAMES[u.tier];
+        shop.appendChild(title);
+        lastTier = u.tier;
+      }
+      const card = document.createElement('div');
+      card.className = 'card';
+      card.id = 'upg-' + u.id;
+      card.innerHTML = `
+        <div class="card-icon">${u.icon}</div>
+        <div class="card-info">
+          <div class="card-name">${u.name}<span class="lvl">ур. 0</span></div>
+          <div class="card-desc"></div>
+        </div>
+        <button class="buy-btn" id="buy-${u.id}">0</button>
+      `;
+      card.querySelector('.buy-btn').addEventListener('click', () => buy(u.id));
+      shop.appendChild(card);
+    });
+  }
+
+  function updateShopCard(u) {
+    const card = $('upg-' + u.id);
+    if (!card) return;
+    const lvl = state.levels[u.id];
+    const maxed = u.max !== undefined && lvl >= u.max;
+    card.querySelector('.lvl').textContent = 'ур. ' + lvl;
+    card.querySelector('.card-desc').textContent = u.desc(lvl);
+    if (maxed) card.classList.add('maxed');
+    else card.classList.remove('maxed');
+    updateShopButton(u);
+  }
+
+  function updateShopButton(u) {
+    const btn = $('buy-' + u.id);
+    if (!btn) return;
+    const maxed = u.max !== undefined && state.levels[u.id] >= u.max;
+    if (maxed) {
+      btn.textContent = 'МАКС';
+      btn.disabled = true;
+      return;
+    }
+    const cost = getCost(u);
+    btn.textContent = '🪙 ' + fmt(cost);
+    btn.disabled = state.coins < cost;
+  }
+
+  function updateShopButtons() {
+    UPGRADES.forEach(updateShopButton);
+  }
+
+  function buy(id) {
+    const u = UPGRADES.find(x => x.id === id);
+    if (!u) return;
+    const lvl = state.levels[id];
+    if (u.max !== undefined && lvl >= u.max) return;
+    const cost = getCost(u);
+    if (state.coins < cost) return;
+
+    state.coins -= cost;
+    state.levels[id]++;
+    sfxBuy();
+    updateShopCard(u);
+    updateAll();
+    checkAchievements();
+    save();
+  }
+
+  /* ============================================================
+     ACHIEVEMENTS
+     ============================================================ */
+  function buildAchievements() {
+    const grid = $('achievements');
+    grid.innerHTML = '';
+    ACHIEVEMENTS.forEach(a => {
+      const el = document.createElement('div');
+      el.className = 'ach ' + (state.achievements.includes(a.id) ? 'unlocked' : 'locked');
+      el.id = 'ach-' + a.id;
+      el.innerHTML = `
+        <div class="ach-icon">${state.achievements.includes(a.id) ? a.icon : '🔒'}</div>
+        <div class="ach-info">
+          <div class="ach-name">${a.name}</div>
+          <div class="ach-desc">${a.desc}</div>
+        </div>
+      `;
+      grid.appendChild(el);
+    });
+  }
+
+  function checkAchievements() {
+    let changed = false;
+    ACHIEVEMENTS.forEach(a => {
+      if (state.achievements.includes(a.id)) return;
+      if (a.check(state)) {
+        state.achievements.push(a.id);
+        changed = true;
+        notify('🏆 ' + a.name, 'achievement', 4000);
+        sfxAch();
+        const el = $('ach-' + a.id);
+        if (el) {
+          el.classList.remove('locked');
+          el.classList.add('unlocked');
+          el.querySelector('.ach-icon').textContent = a.icon;
+        }
+      }
+    });
+    if (changed) updateAll();
+  }
+
+  /* ============================================================
+     STATS
+     ============================================================ */
+  function buildStats() {
+    const stats = $('stats');
+    const rows = [
+      ['💰 Текущий баланс', () => fmt(state.coins)],
+      ['💎 Всего заработано', () => fmt(state.totalEarned)],
+      ['👆 Всего кликов', () => fmt(state.clicks)],
+      ['⏱ Время в игре', () => fmtTime(state.playtime)],
+      ['💪 Сила клика', () => '+' + fmt(getClickPower())],
+      ['🤖 Доход в секунду', () => fmt(getAutoRate())],
+      ['🍀 Шанс крита', () => Math.round(getCritChance() * 100) + '%'],
+      ['⚡ Множитель крита', () => '×' + getCritMultiplier()],
+      ['🔥 Макс. комбо', () => 'x' + getMaxCombo()],
+      ['⭐ Очки престижа', () => state.prestige.points],
+      ['⭐ Множитель престижа', () => '×' + getPrestigeMult().toFixed(2)],
+      ['🔄 Перерождений', () => state.prestige.count],
+      ['🏆 Достижений', () => state.achievements.length + ' / ' + ACHIEVEMENTS.length],
+      ['⭐ Золотых монет', () => state.records.goldenCoins],
+      ['🎯 Рекорд дохода', () => fmt(state.records.perSec) + '/сек']
+    ];
+    stats.innerHTML = rows.map((r, i) =>
+      `<div class="stat-row"><span>${r[0]}</span><b id="stat-${i}">${r[1]()}</b></div>`
+    ).join('');
+  }
+
+  function updateStats() {
+    const stats = $('stats');
+    const bolds = stats.querySelectorAll('b');
+    if (bolds.length === 0) return;
+    const fns = [
+      () => fmt(state.coins),
+      () => fmt(state.totalEarned),
+      () => fmt(state.clicks),
+      () => fmtTime(state.playtime),
+      () => '+' + fmt(getClickPower()),
+      () => fmt(getAutoRate()),
+      () => Math.round(getCritChance() * 100) + '%',
+      () => '×' + getCritMultiplier(),
+      () => 'x' + getMaxCombo(),
+      () => state.prestige.points,
+      () => '×' + getPrestigeMult().toFixed(2),
+      () => state.prestige.count,
+      () => state.achievements.length + ' / ' + ACHIEVEMENTS.length,
+      () => state.records.goldenCoins,
+      () => fmt(state.records.perSec) + '/сек'
+    ];
+    bolds.forEach((b, i) => { if (fns[i]) b.textContent = fns[i](); });
+  }
+
+  /* ============================================================
+     CLICK
+     ============================================================ */
+  function doClick(e) {
+    const now = Date.now();
+    if (now - state.lastClick > 1500) state.combo = 0;
+    state.combo = Math.min(state.combo + 1, getMaxCombo() + 1);
+    state.lastClick = now;
+    if (state.combo > state.records.maxCombo) state.records.maxCombo = state.combo;
+
+    let gain = getClickPower();
+    let crit = false;
+    if (Math.random() < getCritChance()) {
+      gain *= getCritMultiplier();
+      crit = true;
+    }
+
+    state.coins += gain;
+    state.totalEarned += gain;
+    state.clicks++;
+
+    const rect = e.currentTarget.getBoundingClientRect();
+    const x = e.clientX || (rect.left + rect.width / 2);
+    const y = e.clientY || (rect.top + rect.height / 2);
+    spawnFloat(x, y, '+' + fmt(gain), crit);
+
+    const colors = crit ? ['#ff5fa2', '#ff8fc4', '#ffd700'] : ['#ffd86b', '#ffedb0', '#ff9d00'];
+    spawnParticles(x, y, crit ? 15 : 7, colors);
+
+    if (crit) { sfxCrit(); document.querySelector('.app').classList.add('shake'); setTimeout(() => document.querySelector('.app').classList.remove('shake'), 300); }
+    else sfxClick();
+
+    updateAll();
+    checkAchievements();
+  }
+
+  /* ============================================================
+     GOLDEN COIN
+     ============================================================ */
+  let goldenTimer = null;
+
+  function scheduleGoldenCoin() {
+    clearTimeout(goldenTimer);
+    const base = 60;
+    const reduction = state.levels.goldenMagnet * 5;
+    const time = Math.max(15, base - reduction + Math.random() * 40);
+    goldenTimer = setTimeout(spawnGoldenCoin, time * 1000);
+  }
+
+  function spawnGoldenCoin() {
+    const el = $('goldenCoin');
+    const maxX = window.innerWidth - 100;
+    const maxY = window.innerHeight - 100;
+    el.style.left = (50 + Math.random() * Math.max(100, maxX - 100)) + 'px';
+    el.style.top = (80 + Math.random() * Math.max(100, maxY - 100)) + 'px';
+    el.classList.remove('hidden');
+    sfxGolden();
+    notify('⭐ Золотая монета! Успей кликнуть!', 'golden', 2500);
+    setTimeout(() => {
+      if (!el.classList.contains('hidden')) {
+        el.classList.add('hidden');
+        scheduleGoldenCoin();
+      }
+    }, 8000);
+  }
+
+  function collectGoldenCoin() {
+    const el = $('goldenCoin');
+    if (el.classList.contains('hidden')) return;
+    el.classList.add('hidden');
+
+    state.records.goldenCoins++;
+    sfxGolden();
+
+    const roll = Math.random();
+    if (roll < 0.4) {
+      const windfall = Math.max(getClickPower() * 100, getAutoRate() * 60, 1000);
+      state.coins += windfall;
+      state.totalEarned += windfall;
+      notify('💰 Ветряной куш! +' + fmt(windfall), 'golden', 3500);
+      spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 30, ['#ffd700', '#fff5b0', '#ff8c00']);
+    } else if (roll < 0.7) {
+      const available = UPGRADES.filter(u => u.max === undefined || state.levels[u.id] < u.max);
+      if (available.length > 0) {
+        const u = available[Math.floor(Math.random() * available.length)];
+        state.levels[u.id]++;
+        updateShopCard(u);
+        notify('🎁 Бесплатно: ' + u.name + ' ур. ' + state.levels[u.id] + '!', 'golden', 3500);
+      } else {
+        const windfall = getClickPower() * 200;
+        state.coins += windfall;
+        state.totalEarned += windfall;
+        notify('💰 +' + fmt(windfall), 'golden', 3500);
+      }
+    } else {
+      const windfall = Math.max(state.totalEarned * 0.005, 5000);
+      state.coins += windfall;
+      state.totalEarned += windfall;
+      notify('💎 Джекпот! +' + fmt(windfall), 'golden', 3500);
+      spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 40, ['#ffd700', '#ff5fa2', '#7c4dff']);
+    }
+
+    updateAll();
+    checkAchievements();
+    scheduleGoldenCoin();
+  }
+
+  /* ============================================================
+     PRESTIGE
+     ============================================================ */
+  function openPrestige() {
+    const gain = getPrestigeGain();
+    $('prestigeGain').textContent = '+' + gain;
+    $('prestigeModal').classList.remove('hidden');
+  }
+
+  function doPrestige() {
+    const gain = getPrestigeGain();
+    if (gain < 1) {
+      notify('❌ Нужно минимум 1 000 000 всего заработано', 'info', 3000);
+      return;
+    }
+    if (!confirm('Переродиться за +' + gain + ' очков престижа?\nБудут сброшены монеты и все улучшения.')) return;
+
+    state.prestige.points += gain;
+    state.prestige.count++;
+
+    // Reset
+    state.coins = 0;
+    state.totalEarned = 0;
+    state.levels = Object.assign({}, DEFAULT_STATE.levels);
+    state.combo = 0;
+    state.lastClick = 0;
+
+    sfxPrestige();
+    notify('⭐ Перерождение! +' + gain + ' очков престижа', 'golden', 5000);
+    spawnParticles(window.innerWidth / 2, window.innerHeight / 2, 60, ['#7c4dff', '#c4b5fd', '#ffd700']);
+
+    $('prestigeModal').classList.add('hidden');
+    buildShop();
+    updateAll();
+    checkAchievements();
+    save();
+  }
+
+  /* ============================================================
+     MAIN UPDATE
+     ============================================================ */
+  function updateAll() {
+    if (state.coins > state.records.coins) state.records.coins = state.coins;
+    if (state.totalEarned > state.records.totalEarned) state.records.totalEarned = state.totalEarned;
+    if (state.clicks > state.records.clicks) state.records.clicks = state.clicks;
+    const rate = getAutoRate();
+    if (rate > state.records.perSec) state.records.perSec = rate;
+
+    $('coins').textContent = fmt(state.coins);
+    $('perClick').textContent = '+' + fmt(getClickPower());
+    $('perSec').textContent = fmt(rate);
+    $('critChance').textContent = Math.round(getCritChance() * 100) + '%';
+
+    $('prestigePoints').textContent = state.prestige.points;
+    $('prestigeMult').textContent = '×' + getPrestigeMult().toFixed(2);
+
+    // Combo
+    const maxC = getMaxCombo();
+    const comboPct = Math.min(100, (state.combo / maxC) * 100);
+    $('comboFill').style.width = comboPct + '%';
+    const ind = $('comboIndicator');
+    if (state.combo > 1) {
+      ind.textContent = '🔥 КОМБО x' + state.combo;
+      ind.classList.add('active');
+      setTimeout(() => ind.classList.remove('active'), 200);
+    } else {
+      ind.textContent = '';
+    }
+
+    updateShopButtons();
+    const statsTab = $('tab-stats');
+    if (statsTab.classList.contains('active')) updateStats();
+  }
+
+  /* ============================================================
+     TICK
+     ============================================================ */
+  function tick() {
+    const rate = getAutoRate();
+    if (rate > 0) {
+      const gain = rate / 10;
+      state.coins += gain;
+      state.totalEarned += gain;
+    }
+    state.playtime += 0.1;
+
+    if (Date.now() - state.lastClick > 1500 && state.combo > 0) {
+      state.combo = 0;
+    }
+
+    updateAll();
+    checkAchievements();
+  }
+
+  /* ============================================================
+     TABS
+     ============================================================ */
+  function initTabs() {
+    document.querySelectorAll('.tab').forEach(tab => {
+      tab.addEventListener('click', () => {
+        document.querySelectorAll('.tab').forEach(t => t.classList.remove('active'));
+        document.querySelectorAll('.tab-content').forEach(c => c.classList.remove('active'));
+        tab.classList.add('active');
+        const id = 'tab-' + tab.dataset.tab;
+        $(id).classList.add('active');
+        if (tab.dataset.tab === 'stats') updateStats();
+        if (tab.dataset.tab === 'achievements') buildAchievements();
+      });
+    });
+  }
+
+  /* ============================================================
+     SETTINGS
+     ============================================================ */
+  function initSettings() {
+    const sT = $('soundToggle');
+    const pT = $('particlesToggle');
+    sT.classList.toggle('on', state.settings.sound);
+    pT.classList.toggle('on', state.settings.particles);
+
+    sT.addEventListener('click', () => {
+      state.settings.sound = !state.settings.sound;
+      sT.classList.toggle('on', state.settings.sound);
+      save();
+    });
+    pT.addEventListener('click', () => {
+      state.settings.particles = !state.settings.particles;
+      pT.classList.toggle('on', state.settings.particles);
+      save();
+    });
+
+    $('prestigeBtn').addEventListener('click', openPrestige);
+    $('prestigeConfirm').addEventListener('click', doPrestige);
+
+    $('exportBtn').addEventListener('click', () => {
+      const data = btoa(unescape(encodeURIComponent(JSON.stringify(state))));
+      prompt('Скопируйте сохранение:', data);
+    });
+
+    $('importBtn').addEventListener('click', () => {
+      const data = prompt('Вставьте сохранение:');
+      if (!data) return;
+      try {
+        const decoded = JSON.parse(decodeURIComponent(escape(atob(data.trim()))));
+        if (decoded && typeof decoded === 'object') {
+          localStorage.setItem(SAVE_KEY, JSON.stringify(decoded));
+          location.reload();
+        }
+      } catch (e) {
+        alert('❌ Неверный формат сохранения');
+      }
+    });
+
+    $('resetBtn').addEventListener('click', () => {
+      if (confirm('⚠️ Полностью сбросить игру и все рекорды?')) {
+        state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+        save();
+        location.reload();
+      }
+    });
+  }
+
+  /* ============================================================
+     ADMIN
+     ============================================================ */
+  let logoClicks = 0;
+  let logoTimer = null;
+
+  function openAdmin() {
+    const pass = prompt('🔒 Пароль администратора:');
+    if (pass === null) return;
+    if (pass !== ADMIN_PASSWORD) {
+      alert('❌ Неверный пароль!');
+      return;
+    }
+    $('adminModal').classList.remove('hidden');
+  }
+
+  function initAdmin() {
+    $('logo').addEventListener('click', () => {
+      logoClicks++;
+      clearTimeout(logoTimer);
+      logoTimer = setTimeout(() => { logoClicks = 0; }, 1500);
+      if (logoClicks >= 5) { logoClicks = 0; openAdmin(); }
+    });
+
+    document.addEventListener('keydown', e => {
+      if (e.ctrlKey && e.shiftKey && (e.key === 'A' || e.key === 'a' || e.key === 'Ф' || e.key === 'ф')) {
+        e.preventDefault();
+        openAdmin();
+      }
+    });
+
+    document.querySelectorAll('[data-close]').forEach(b => {
+      b.addEventListener('click', () => $('modal-' + b.dataset.close || b.dataset.close).classList.add('hidden'));
+    });
+
+    document.querySelectorAll('.modal').forEach(m => {
+      m.addEventListener('click', e => {
+        if (e.target === m) m.classList.add('hidden');
+      });
+    });
+
+    $('adminModal').addEventListener('click', e => {
+      const btn = e.target.closest('[data-admin]');
+      if (!btn) return;
+      const action = btn.dataset.admin;
+
+      switch (action) {
+        case 'add1k': state.coins += 1e3; state.totalEarned += 1e3; break;
+        case 'add1m': state.coins += 1e6; state.totalEarned += 1e6; break;
+        case 'add1b': state.coins += 1e9; state.totalEarned += 1e9; break;
+        case 'add1t': state.coins += 1e12; state.totalEarned += 1e12; break;
+        case 'maxAll':
+          UPGRADES.forEach(u => { state.levels[u.id] = u.max !== undefined ? u.max : 100; });
+          state.coins += 1e15;
+          state.totalEarned += 1e15;
+          buildShop();
+          break;
+        case 'unlockAll':
+          ACHIEVEMENTS.forEach(a => {
+            if (!state.achievements.includes(a.id)) state.achievements.push(a.id);
+          });
+          buildAchievements();
+          break;
+        case 'addPrestige': state.prestige.points += 10; break;
+        case 'spawnGolden': spawnGoldenCoin(); break;
+        case 'setCoins': {
+          const v = parseFloat($('admCoins').value);
+          if (!isNaN(v) && v >= 0) {
+            if (v > state.coins) state.totalEarned += v - state.coins;
+            state.coins = v;
+          }
+          break;
+        }
+        case 'setClick': {
+          const v = parseInt($('admClick').value, 10);
+          if (!isNaN(v) && v >= 0) state.levels.click = v;
+          break;
+        }
+        case 'setAuto': {
+          const v = parseInt($('admAuto').value, 10);
+          if (!isNaN(v) && v >= 0) state.levels.auto = v;
+          break;
+        }
+        case 'setMulti': {
+          const v = parseInt($('admMulti').value, 10);
+          if (!isNaN(v) && v >= 0) state.levels.multi = Math.min(v, 15);
+          break;
+        }
+        case 'setCrit': {
+          const v = parseInt($('admCrit').value, 10);
+          if (!isNaN(v) && v >= 0) state.levels.crit = Math.min(v, 10);
+          break;
+        }
+        case 'setPrestige': {
+          const v = parseInt($('admPrestige').value, 10);
+          if (!isNaN(v) && v >= 0) state.prestige.points = v;
+          break;
+        }
+        case 'reset':
+          if (confirm('⚠️ Полный сброс?')) {
+            state = JSON.parse(JSON.stringify(DEFAULT_STATE));
+            save();
+            location.reload();
+            return;
+          }
+          break;
+      }
+
+      buildShop();
+      updateAll();
+      checkAchievements();
+      save();
+    });
+  }
+
+  /* ============================================================
+     OFFLINE EARNINGS
+     ============================================================ */
+  function applyOfflineEarnings() {
+    if (!state.lastSave) return;
+    const offlineMs = Date.now() - state.lastSave;
+    const offlineSec = Math.min(offlineMs / 1000, 8 * 3600); // max 8 hours
+    if (offlineSec < 30) return;
+    const rate = getAutoRate();
+    if (rate <= 0) return;
+    const earned = rate * offlineSec * 0.5; // 50% offline rate
+    if (earned < 1) return;
+    state.coins += earned;
+    state.totalEarned += earned;
+    setTimeout(() => {
+      notify('💤 Оффлайн-доход: +' + fmt(earned) + ' (' + fmtTime(offlineSec) + ')', 'success', 5000);
+    }, 500);
+  }
+
+  /* ============================================================
+     INIT
+     ============================================================ */
+  function init() {
+    load();
+    applyOfflineEarnings();
+    buildShop();
+    buildAchievements();
+    buildStats();
+    initTabs();
+    initSettings();
+    initAdmin();
+
+    // Show all cards initially
+    UPGRADES.forEach(updateShopCard);
+
+    $('clickBtn').addEventListener('click', doClick);
+    $('goldenCoin').addEventListener('click', collectGoldenCoin);
+
+    updateAll();
+    setInterval(tick, 100);
+    setInterval(save, 5000);
+    scheduleGoldenCoin();
+
+    window.addEventListener('beforeunload', save);
+    document.addEventListener('visibilitychange', () => {
+      if (document.hidden) save();
+    });
+  }
+
+  init();
+})();
+</script>
+</body>
+</html>
